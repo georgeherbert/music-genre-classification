@@ -2,7 +2,10 @@ import torch
 
 from dataset import GTZAN
 
-DEVICE = torch.device("cuda")
+if torch.cuda.is_available():
+    DEVICE = torch.device("cuda")
+elif torch.backends.mps.is_available():
+    DEVICE = torch.device("mps")
 
 class CNN(torch.nn.Module):
     def __init__(self):
@@ -48,10 +51,12 @@ class CNN(torch.nn.Module):
         x_right = self.pool_right(x_right)
 
         x = torch.cat([torch.flatten(x_left, start_dim = 1), torch.flatten(x_right, start_dim = 1)], dim = 1)
-        x = torch.nn.LeakyReLU(self.fc_1(x))
+        x = self.leaky_relu(self.fc_1(x))
         x = self.dropout(x)
 
         x = self.fc_2(x)
+
+        return x
 
     @staticmethod
     def initialise_layer(layer):
@@ -59,7 +64,6 @@ class CNN(torch.nn.Module):
             torch.nn.init.zeros_(layer.bias)
         if hasattr(layer, "weight"):
             torch.nn.init.kaiming_normal_(layer.weight)
-
 
 class Trainer:
     def __init__(
@@ -78,8 +82,8 @@ class Trainer:
         self.step = 0
 
     def train(self):
-        self.model.train()
         for epoch in range(200):
+            self.model.train()
             for _, batch, labels, _ in self.train_loader:
                 batch = batch.to(DEVICE)
                 labels = labels.to(DEVICE)
@@ -90,20 +94,20 @@ class Trainer:
                 self.optimiser.zero_grad()
                 with torch.no_grad():
                     preds = logits.argmax(-1)
-                    accuracy = float((labels == preds).sum()) / len(labels)
-                    print(epoch, accuracy)
+                    accuracy = float((labels == preds).sum()) / len(labels) * 100
+                    print(epoch, accuracy, flush = True)
 
 
 def main():
     train_loader = torch.utils.data.DataLoader(
         GTZAN("data/train.pkl"),
         shuffle=True,
-        batch_size=256,
+        batch_size=512,
     )
     val_loader = torch.utils.data.DataLoader(
         GTZAN("data/val.pkl"),
         shuffle=False,
-        batch_size=256,
+        batch_size=512,
     )
 
     model = CNN()
