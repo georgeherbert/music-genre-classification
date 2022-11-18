@@ -1,4 +1,7 @@
 import torch
+from torch.utils.tensorboard import SummaryWriter
+
+from datetime import datetime
 
 from dataset import GTZAN
 from evaluation import evaluate
@@ -9,6 +12,7 @@ if torch.cuda.is_available():
     DEVICE = torch.device("cuda")
 elif torch.backends.mps.is_available():
     DEVICE = torch.device("mps")
+
 
 class CNN(torch.nn.Module):
     def __init__(self):
@@ -78,7 +82,8 @@ class Trainer:
             train_loader: torch.utils.data.DataLoader,
             val_loader: torch.utils.data.DataLoader,
             criterion: torch.nn.Module,
-            optimiser: torch.optim.Adam
+            optimiser: torch.optim.Adam,
+            summary_writer: SummaryWriter
     ):
         self.device = device
         self.model = model.to(self.device)
@@ -86,6 +91,7 @@ class Trainer:
         self.val_loader = val_loader
         self.criterion = criterion
         self.optimiser = optimiser
+        self.summary_writer = summary_writer
         self.step = 0
 
     def calc_l1_penalty(self):
@@ -99,10 +105,16 @@ class Trainer:
                 batch = batch.to(self.device)
                 logits = self.model(batch)
                 results = torch.cat((results, logits.cpu()), 0)
-        evaluate(results, "data/val.pkl")
+        validation_accuracy = evaluate(results, "data/val.pkl")
+        self.summary_writer.add_scalars(
+            "accuracy",
+            {"validation": validation_accuracy},
+            self.step
+        )
 
     def train(self):
         for epoch in range(200):
+            self.summary_writer.add_scalar("epoch", epoch, self.step)
             self.model.train()
             latest_batch_accuracy = 0
             for _, batch, labels, _ in self.train_loader:
@@ -117,9 +129,15 @@ class Trainer:
                     preds = logits.argmax(-1)
                     latest_batch_accuracy = float(
                         (labels == preds).sum()) / len(labels) * 100
+                    self.summary_writer.add_scalars(
+                        "accuracy",
+                        {"train": latest_batch_accuracy},
+                        self.step
+                    )
+                self.step += 1
 
             print(epoch, latest_batch_accuracy)
-            if (epoch % 5 == 0):
+            if ((epoch + 1) % 5 == 0):
                 self.validate()
             print("", flush=True)
 
@@ -129,13 +147,13 @@ if __name__ == "__main__":
     train_loader = torch.utils.data.DataLoader(
         GTZAN("data/train.pkl"),
         shuffle=True,
-        batch_size=128,
+        batch_size=64,
         pin_memory=True
     )
     val_loader = torch.utils.data.DataLoader(
         GTZAN("data/val.pkl"),
         shuffle=False,
-        batch_size=128,
+        batch_size=64,
         pin_memory=True
     )
     criterion = torch.nn.CrossEntropyLoss()
@@ -145,12 +163,18 @@ if __name__ == "__main__":
         betas=(0.9, 0.999),
         eps=1e-8
     )
+    summary_writer = SummaryWriter(
+        "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S"),
+        flush_secs=5
+    )
     trainer = Trainer(
         DEVICE,
         model,
         train_loader,
         val_loader,
         criterion,
-        optimiser
+        optimiser,
+        summary_writer
     )
     trainer.train()
+    summary_writer.close()
