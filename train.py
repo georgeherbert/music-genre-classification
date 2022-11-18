@@ -1,6 +1,9 @@
 import torch
 
 from dataset import GTZAN
+from evaluation import evaluate
+
+torch.backends.cudnn.benchmark = True
 
 if torch.cuda.is_available():
     DEVICE = torch.device("cuda")
@@ -30,7 +33,6 @@ class CNN(torch.nn.Module):
             kernel_size=(20, 1),
             stride=(20, 1)
         )
-
         self.leaky_relu = torch.nn.LeakyReLU(0.3)
 
         self.fc_1 = torch.nn.Linear(10240, 200)
@@ -46,16 +48,18 @@ class CNN(torch.nn.Module):
     def forward(self, images: torch.Tensor) -> torch.Tensor:
         x_left = self.leaky_relu(self.conv_left((images)))
         x_left = self.pool_left(x_left)
-
         x_right = self.leaky_relu(self.conv_right((images)))
         x_right = self.pool_right(x_right)
-
-        x = torch.cat([torch.flatten(x_left, start_dim = 1), torch.flatten(x_right, start_dim = 1)], dim = 1)
+        x = torch.cat(
+            [
+                torch.flatten(x_left, start_dim=1),
+                torch.flatten(x_right, start_dim=1)
+            ],
+            dim=1
+        )
         x = self.leaky_relu(self.fc_1(x))
         x = self.dropout(x)
-
         x = self.fc_2(x)
-
         return x
 
     @staticmethod
@@ -65,64 +69,88 @@ class CNN(torch.nn.Module):
         if hasattr(layer, "weight"):
             torch.nn.init.kaiming_normal_(layer.weight)
 
+
 class Trainer:
     def __init__(
             self,
+            device: torch.device,
             model: torch.nn.Module,
             train_loader: torch.utils.data.DataLoader,
             val_loader: torch.utils.data.DataLoader,
             criterion: torch.nn.Module,
             optimiser: torch.optim.Adam
     ):
-        self.model = model.to(DEVICE)
+        self.device = device
+        self.model = model.to(self.device)
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.criterion = criterion
         self.optimiser = optimiser
         self.step = 0
 
+    def calc_l1_penalty(self):
+        return torch.cat([param.view(-1).abs() for name, param in model.named_parameters() if ".weight" in name]).sum() * 0.0001
+
+    def validate(self):
+        self.model.eval()
+        results = torch.Tensor()
+        with torch.no_grad():
+            for _, batch, _, _ in self.val_loader:
+                batch = batch.to(self.device)
+                logits = self.model(batch)
+                results = torch.cat((results, logits.cpu()), 0)
+        evaluate(results, "data/val.pkl")
+
     def train(self):
         for epoch in range(200):
             self.model.train()
+            latest_batch_accuracy = 0
             for _, batch, labels, _ in self.train_loader:
-                batch = batch.to(DEVICE)
-                labels = labels.to(DEVICE)
-                logits = self.model.forward(batch)
-                loss = self.criterion(logits, labels)
+                batch = batch.to(self.device)
+                labels = labels.to(self.device)
+                logits = self.model(batch)
+                loss = self.criterion(logits, labels) + self.calc_l1_penalty()
                 loss.backward()
                 self.optimiser.step()
                 self.optimiser.zero_grad()
                 with torch.no_grad():
                     preds = logits.argmax(-1)
-                    accuracy = float((labels == preds).sum()) / len(labels) * 100
-                    print(epoch, accuracy, flush = True)
+                    latest_batch_accuracy = float(
+                        (labels == preds).sum()) / len(labels) * 100
+
+            print(epoch, latest_batch_accuracy)
+            if (epoch % 5 == 0):
+                self.validate()
+            print("", flush=True)
 
 
-def main():
+if __name__ == "__main__":
+    model = CNN()
     train_loader = torch.utils.data.DataLoader(
         GTZAN("data/train.pkl"),
         shuffle=True,
-        batch_size=512,
+        batch_size=128,
+        pin_memory=True
     )
     val_loader = torch.utils.data.DataLoader(
         GTZAN("data/val.pkl"),
         shuffle=False,
-        batch_size=512,
+        batch_size=128,
+        pin_memory=True
     )
-
-    model = CNN()
     criterion = torch.nn.CrossEntropyLoss()
-
     optimiser = torch.optim.Adam(
         model.parameters(),
         lr=0.00005,
         betas=(0.9, 0.999),
         eps=1e-8
     )
-
-    trainer = Trainer(model, train_loader, val_loader, criterion, optimiser)
-
+    trainer = Trainer(
+        DEVICE,
+        model,
+        train_loader,
+        val_loader,
+        criterion,
+        optimiser
+    )
     trainer.train()
-
-if __name__ == "__main__":
-    main()
