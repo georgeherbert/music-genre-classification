@@ -435,3 +435,6 @@ TSWLatexianTemp*
 
 # Training files
 data/*
+
+# VS Code
+.vscode/*

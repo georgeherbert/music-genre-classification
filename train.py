@@ -1,5 +1,7 @@
 import torch
-from torch.utils.tensorboard import SummaryWriter
+import torch.backends.cudnn
+from torch.utils.data import DataLoader
+from torch.utils.tensorboard.writer import SummaryWriter
 
 from datetime import datetime
 
@@ -8,13 +10,22 @@ from evaluation import evaluate
 
 torch.backends.cudnn.benchmark = True
 
-if torch.cuda.is_available():
-    DEVICE = torch.device("cuda")
-elif torch.backends.mps.is_available():
-    DEVICE = torch.device("mps")
+DEVICE = torch.device("cuda")
 
 
 class CNN(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    @staticmethod
+    def initialise_layer(layer):
+        if hasattr(layer, "bias"):
+            torch.nn.init.zeros_(layer.bias)
+        if hasattr(layer, "weight"):
+            torch.nn.init.kaiming_normal_(layer.weight)
+
+
+class ShallowCNN(CNN):
     def __init__(self):
         super().__init__()
         self.conv_left = torch.nn.Conv2d(
@@ -38,12 +49,9 @@ class CNN(torch.nn.Module):
             stride=(20, 1)
         )
         self.leaky_relu = torch.nn.LeakyReLU(0.3)
-
         self.fc_1 = torch.nn.Linear(10240, 200)
         self.dropout = torch.nn.Dropout(0.1)
-
         self.fc_2 = torch.nn.Linear(200, 10)
-
         self.initialise_layer(self.conv_left)
         self.initialise_layer(self.conv_right)
         self.initialise_layer(self.fc_1)
@@ -66,23 +74,16 @@ class CNN(torch.nn.Module):
         x = self.fc_2(x)
         return x
 
-    @staticmethod
-    def initialise_layer(layer):
-        if hasattr(layer, "bias"):
-            torch.nn.init.zeros_(layer.bias)
-        if hasattr(layer, "weight"):
-            torch.nn.init.kaiming_normal_(layer.weight)
-
 
 class Trainer:
     def __init__(
             self,
             device: torch.device,
             model: torch.nn.Module,
-            train_loader: torch.utils.data.DataLoader,
-            val_loader: torch.utils.data.DataLoader,
+            train_loader: DataLoader,
+            val_loader: DataLoader,
             criterion: torch.nn.Module,
-            optimiser: torch.optim.Adam,
+            optimiser: torch.optim.Optimizer,
             summary_writer: SummaryWriter
     ):
         self.device = device
@@ -94,87 +95,121 @@ class Trainer:
         self.summary_writer = summary_writer
         self.step = 0
 
-    def calc_l1_penalty(self):
-        return torch.cat([param.view(-1).abs() for name, param in model.named_parameters() if ".weight" in name]).sum() * 0.0001
+    def l1_penalty(self, penalty: float = 0.0001) -> torch.Tensor:
+        params = self.model.named_parameters()
+        weights = torch.cat([p.view(-1) for n, p in params if ".weight" in n])
+        return weights.abs().sum() * penalty
+
+    def calc_loss(
+        self,
+        logits: torch.Tensor,
+        labels: torch.Tensor
+    ) -> torch.Tensor:
+        return self.criterion(logits, labels) + self.l1_penalty()
+
+    def log_curves(
+        self,
+        type: str,
+        loss: float,
+        accuracy: float
+    ):
+        self.summary_writer.add_scalars(
+            "loss",
+            {type: loss},
+            self.step
+        )
+        self.summary_writer.add_scalars(
+            "accuracy",
+            {type: accuracy},
+            self.step
+        )
 
     def validate(self):
         self.model.eval()
         results = torch.Tensor()
+        total_loss = 0
         with torch.no_grad():
-            for _, batch, _, _ in self.val_loader:
-                batch = batch.to(self.device)
-                logits = self.model(batch)
-                results = torch.cat((results, logits.cpu()), 0)
-        validation_accuracy = evaluate(results, "data/val.pkl")
-        self.summary_writer.add_scalars(
-            "accuracy",
-            {"validation": validation_accuracy},
-            self.step
-        )
-
-    def train(self):
-        for epoch in range(200):
-            self.summary_writer.add_scalar("epoch", epoch, self.step)
-            self.model.train()
-            latest_batch_accuracy = 0
-            for _, batch, labels, _ in self.train_loader:
+            for _, batch, labels, _ in self.val_loader:
                 batch = batch.to(self.device)
                 labels = labels.to(self.device)
-                logits = self.model(batch)
-                loss = self.criterion(logits, labels) + self.calc_l1_penalty()
-                loss.backward()
-                self.optimiser.step()
-                self.optimiser.zero_grad()
-                with torch.no_grad():
-                    preds = logits.argmax(-1)
-                    latest_batch_accuracy = float(
-                        (labels == preds).sum()) / len(labels) * 100
-                    self.summary_writer.add_scalars(
-                        "accuracy",
-                        {"train": latest_batch_accuracy},
-                        self.step
-                    )
-                self.step += 1
+                logits = self.model.forward(batch)
+                loss = self.calc_loss(logits, labels)
+                total_loss += loss.item()
+                results = torch.cat((results, logits.cpu()), 0)
+        mean_loss = total_loss / len(self.val_loader)
+        accuracy = evaluate(results, "data/val.pkl")
+        self.log_curves("val", mean_loss, float(accuracy))
 
-            print(epoch, latest_batch_accuracy)
-            if ((epoch + 1) % 5 == 0):
+    def train_batch(
+        self, batch: torch.Tensor,
+        labels: torch.Tensor,
+        log_frequency: int
+    ):
+        batch = batch.to(self.device)
+        labels = labels.to(self.device)
+        logits = self.model.forward(batch)
+        loss = self.calc_loss(logits, labels)
+        loss.backward()
+        self.optimiser.step()
+        self.optimiser.zero_grad()
+        if (self.step + 1) % log_frequency == 0:
+            with torch.no_grad():
+                preds = logits.argmax(-1)
+                accuracy = (labels == preds).sum().item() / len(labels) * 100
+            self.log_curves("train", loss.item(), accuracy)
+        self.step += 1
+
+    def train(
+        self,
+        epochs: int,
+        log_frequency: int = 1,
+        val_frequency: int = 1
+    ):
+        self.model.train()
+        for epoch in range(epochs):
+            self.summary_writer.add_scalar("epoch", epoch, self.step)
+            for _, batch, labels, _ in self.train_loader:
+                self.train_batch(batch, labels, log_frequency)
+            if (epoch + 1) % val_frequency == 0:
                 self.validate()
-            print("", flush=True)
+                self.model.train()
 
 
 if __name__ == "__main__":
-    model = CNN()
-    train_loader = torch.utils.data.DataLoader(
-        GTZAN("data/train.pkl"),
+    model = ShallowCNN()
+    train_loader = DataLoader(
+        dataset=GTZAN("data/train.pkl"),
         shuffle=True,
         batch_size=64,
         pin_memory=True
     )
-    val_loader = torch.utils.data.DataLoader(
-        GTZAN("data/val.pkl"),
+    val_loader = DataLoader(
+        dataset=GTZAN("data/val.pkl"),
         shuffle=False,
         batch_size=64,
         pin_memory=True
     )
     criterion = torch.nn.CrossEntropyLoss()
     optimiser = torch.optim.Adam(
-        model.parameters(),
+        params=model.parameters(),
         lr=0.00005,
         betas=(0.9, 0.999),
         eps=1e-8
     )
     summary_writer = SummaryWriter(
-        "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S"),
+        log_dir="logs/" + datetime.now().strftime("%Y%m%d-%H%M%S"),
         flush_secs=5
     )
     trainer = Trainer(
-        DEVICE,
-        model,
-        train_loader,
-        val_loader,
-        criterion,
-        optimiser,
-        summary_writer
+        device=DEVICE,
+        model=model,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        criterion=criterion,
+        optimiser=optimiser,
+        summary_writer=summary_writer
     )
-    trainer.train()
+    trainer.train(
+        epochs=200,
+    )
     summary_writer.close()
