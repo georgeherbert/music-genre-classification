@@ -44,11 +44,28 @@ There are 100 tracks for each of the 10 genres in the dataset: blues, classical,
 
 The CNNs were not trained on the raw tracks.
 Each audio track was divided into chunks, with log-mel spectograms produced for randomly selected chunks.
-
 To produce a training and validation set, a stratified split was deemed suitable to prevent imbalance.
 Spectograms for 75 of the 100 WAV audio tracks for each genre were randomly selected to make up the training set, with the spectograms for the other 25 audio tracks for each genre making up the validation set.
 
 \section{CNN Architecture}
+
+I recreated the shallow CNN architecture outlined by Schindler et al.
+Log-mel spectrograms of shape $80\times80$ are provided as input to the network.
+
+Since the dimensions of the spectograms correspond to time and frequency, Schindler et al. implemented a parallel architecture.
+The left pipeline aims to capture frequency relations.
+It first contains a convolutional layer (with padding) with 16 kernels of shape $10\times23$ to produce 16 square feature maps of shape $80\times80$.
+These are then downsampled using a $1\times20$ max pooling layer to produce 16 vertical rectangular feature maps of shape $80\times4$.
+The kernel and max pooling shapes were specifically selected to capture spectral characteristics.
+Conversely, the right pipeline aims to capture temporal relations.
+It too initially contains a convolutional layer (with padding) with 16 kernels, but of approximately square shape $21\times20$ to produce 16 square feature maps of shape $80\times80$.
+These are then downsampled using a $20\times1$ max pooling layer to produce 16 horizontal rectangular feature maps of shape $4\times80$, specifically to capture temporal changes in intensity.
+
+The 16 feature maps from each piepline are flattened and concatenated to a shape of $1\times10240$, which serves as input to a 200 neuron fully connected layer---10\% dropout is utilised at this layer to prevent overfitting.
+These final 200 neurons are then mapped to 10 output neurons, which represent the probabilities of each of the ten genres for a given input.
+
+With the exception of the final layer, each convolutional and fully connected layer is passed through the Leaky ReLU activation function.
+The final layer uses the softmax activation function.
 
 \section{Implementation Details}
 
