@@ -21,20 +21,32 @@ cj19328@bristol.ac.uk}
 \maketitle
 
 \begin{abstract}
-abstract
 \end{abstract}
 
 \begin{IEEEkeywords}
-deep learning
+music information retrieval, convolutional neural networks
 \end{IEEEkeywords}
 
 \section{Introduction}
 
-\cite{SchindlerLidyRauber}
+Music information retrieval (MIR) is the interdisciplinary science of retrieving information from music.
+Genre classification---classifying a sample of music into one or more genres---is a fundamental problem in MIR.
+
+Schindler et al. \cite{SchindlerLidyRauber} investigated performance differences of different convolutional neural network (CNN) architectures on the task of genre classification.
+
 
 \section{Related Work}
 
 \section{Dataset}
+
+The GTZAN dataset \cite{TzanetakisEsslCook} contains 1000 WAV audio tracks, each 30 seconds in length.
+There are 100 tracks for each of the 10 genres in the dataset: blues, classical, country, disco, hip-hop, jazz, metal, pop, reggae and rock.
+
+The CNNs were not trained on the raw tracks.
+Each audio track was divided into chunks, with log-mel spectograms produced for randomly selected chunks.
+
+To produce a training and validation set, a stratified split was deemed suitable to prevent imbalance.
+Spectograms for 75 of the 100 WAV audio tracks for each genre were randomly selected to make up the training set, with the spectograms for the other 25 audio tracks for each genre making up the validation set.
 
 \section{CNN Architecture}
 
