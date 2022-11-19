@@ -2,9 +2,10 @@
 % \usepackage{cite}
 % \usepackage{amsmath,amssymb,amsfonts}
 % \usepackage{algorithmic}
-% \usepackage{graphicx}
+\usepackage{graphicx}
 % \usepackage{textcomp}
 % \usepackage{xcolor}
+\graphicspath{{./images/}}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
@@ -120,6 +121,18 @@ Table \ref{shallow_results} displays the accuracy my implementation achieved on 
 \end{table}
 
 \section{Training Curves}
+
+\begin{figure}[htbp]
+    \centerline{\includegraphics[width=\columnwidth]{accuracy.png}}
+    \caption{Accuracy curves}
+    \label{accuracy_curves}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centerline{\includegraphics[width=\columnwidth]{loss.png}}
+    \caption{Loss curves}
+    \label{loss_curves}
+\end{figure}
 
 \section{Qualitative Results}
 
