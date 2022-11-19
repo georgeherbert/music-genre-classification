@@ -74,6 +74,115 @@ class ShallowCNN(CNN):
         x = self.fc_2(x)
         return x
 
+    
+# class DeepCNN(CNN):
+#     def __init__(self):
+#         super().__init__()
+#         self.conv_left_1 = torch.nn.Conv2d(
+#             in_channels=1,
+#             out_channels=16,
+#             kernel_size=(10, 23),
+#             padding="same"
+#         )
+#         self.conv_right_1 = torch.nn.Conv2d(
+#             in_channels=1,
+#             out_channels=16,
+#             kernel_size=(21, 20),
+#             padding="same"
+#         )
+#         self.pool_both_1 = torch.nn.MaxPool2d(
+#             kernel_size=(2, 2),
+#             stride=(2, 2)
+#         )
+#         self.conv_left_2 = torch.nn.Conv2d(
+#             in_channels=16,
+#             out_channels=32,
+#             kernel_size=(5,11),
+#             padding="same"
+#         )
+#         self.conv_right_2 = torch.nn.Conv2d(
+#             in_channels=16,
+#             out_channels=32,
+#             kernel_size=(10,5),
+#             padding="same"
+#         )
+#         self.conv_left_3 = torch.nn.Conv2d(
+#             in_channels=32,
+#             out_channels=64,
+#             kernel_size=(3,5),
+#             padding="same"
+#         )
+#         self.conv_right_3 = torch.nn.Conv2d(
+#             in_channels=32,
+#             out_channels=64,
+#             kernel_size=(5,3),
+#             padding="same"
+#         )
+#         self.conv_left_4 = torch.nn.Conv2d(
+#             in_channels=64,
+#             out_channels=128,
+#             kernel_size=(2,4),
+#             padding="same"
+#         )
+#         self.conv_right_4 = torch.nn.Conv2d(
+#             in_channels=64,
+#             out_channels=128,
+#             kernel_size=(4,2),
+#             padding="same"
+#         )
+#         self.pool_left_1 = torch.nn.MaxPool2d(
+#             kernel_size=(1, 5),
+#             stride=(1, 5)
+#         )
+#         self.pool_right_1 = torch.nn.MaxPool2d(
+#             kernel_size=(5, 1),
+#             stride=(5, 1)
+#         )
+#         self.fc_1 = torch.nn.Linear(5120, 200)
+#         self.leaky_relu = torch.nn.LeakyReLU(0.3)
+#         self.dropout = torch.nn.Dropout(0.25)
+#         self.fc_2 = torch.nn.Linear(200, 10)
+#         self.initialise_layer(self.conv_left_1)
+#         self.initialise_layer(self.conv_right_1)
+#         self.initialise_layer(self.conv_left_2)
+#         self.initialise_layer(self.conv_right_2)
+#         self.initialise_layer(self.conv_left_3)
+#         self.initialise_layer(self.conv_right_3)
+#         self.initialise_layer(self.conv_left_4)
+#         self.initialise_layer(self.conv_right_4)
+#         self.initialise_layer(self.conv_left_1)
+#         self.initialise_layer(self.fc_1)
+#         self.initialise_layer(self.fc_2)
+
+#     def forward(self, images: torch.Tensor) -> torch.Tensor:
+#         x_left = self.leaky_relu(self.conv_left_1((images)))
+#         x_left = self.pool_both_1(x_left)
+#         x_left = self.leaky_relu(self.conv_left_2((x_left)))
+#         x_left = self.pool_both_1(x_left)
+#         x_left = self.leaky_relu(self.conv_left_3((x_left)))
+#         x_left = self.pool_both_1(x_left)
+#         x_left = self.leaky_relu(self.conv_left_4((x_left)))
+#         x_left = self.pool_left_1(x_left)
+
+#         x_right = self.leaky_relu(self.conv_left_1((images)))
+#         x_right = self.pool_both_1(x_right)
+#         x_right = self.leaky_relu(self.conv_left_2((x_right)))
+#         x_right = self.pool_both_1(x_right)
+#         x_right = self.leaky_relu(self.conv_left_3((x_right)))
+#         x_right = self.pool_both_1(x_right)
+#         x_right = self.leaky_relu(self.conv_left_4((x_right)))
+#         x_right = self.pool_left_1(x_right)
+#         x = torch.cat(
+#             [
+#                 torch.flatten(x_left, start_dim=1),
+#                 torch.flatten(x_right, start_dim=1)
+#             ],
+#             dim=1
+#         )
+#         x = self.leaky_relu(self.fc_1(x))
+#         x = self.dropout(x)
+#         x = self.fc_2(x)
+#         return x
 
 class Trainer:
     def __init__(
@@ -178,7 +287,7 @@ class Trainer:
 if __name__ == "__main__":
     model = ShallowCNN()
     train_loader = DataLoader(
-        dataset=GTZAN("data/augment.pkl"),
+        dataset=GTZAN("data/train.pkl"),
         shuffle=True,
         batch_size=64,
         pin_memory=True

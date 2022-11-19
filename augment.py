@@ -2,6 +2,7 @@ import numpy as np
 import pickle
 import librosa
 import torch
+import random
 
 DATASET = pickle.load(open("data/train.pkl", 'rb'))
 
@@ -26,25 +27,25 @@ def create_mel(wave):
 
 
 def augment():
-    new_dataset = []
-    # new_dataset = DATASET
-    for i, sample in enumerate(DATASET):
-        file = sample[0]
-        mel = sample[1]
-        label = sample[2]
-        wave = sample[3]
-        new_dataset.append((file, mel, label, ""))
-        for change in (-1, 1):
-            # new_wave = librosa.effects.time_stretch(wave, rate=change)
-            new_wave = librosa.effects.pitch_shift(
-                wave,
-                sr=22050,
-                n_steps=change,
-                bins_per_octave=12
-            )
-            new_mel = create_mel(new_wave)
-            new_dataset.append((file, new_mel, label, ""))
-        print(i + 1, len(new_dataset))
+    new_dataset = DATASET
+    for i in range(0, len(DATASET), 15):
+        for stretch in (0.2, 0.5, 1.2, 1.5):
+            for shift in (-5, -2, 2, 5):
+                for j in random.sample(range(15), 3):
+                    sample = DATASET[i + j]
+                    new_wave = librosa.effects.time_stretch(
+                        sample[3],
+                        rate=stretch
+                    )
+                    new_wave = librosa.effects.pitch_shift(
+                        new_wave,
+                        sr=22050,
+                        n_steps=shift,
+                        bins_per_octave=12
+                    )
+                    new_mel = create_mel(new_wave)
+                    new_dataset.append((sample[0], new_mel, sample[2], ""))
+        print(i // 15, len(new_dataset))
     with open("data/augment.pkl", "wb") as file:
         pickle.dump(new_dataset, file)
 
