@@ -7,7 +7,7 @@
 #SBATCH -e ./log.err # STDERR out
 #SBATCH --gres=gpu:1
 #SBATCH --time=0:30:00
-#SBATCH --mem=16GB
+#SBATCH --mem=32GB
 
 # get rid of any modules already loaded
 module purge

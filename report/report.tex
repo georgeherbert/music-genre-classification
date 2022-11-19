@@ -46,7 +46,7 @@ The CNNs were trained on chunks of approximately 0.93 seconds that were randomly
 To produce a training and validation set, a stratified split was deemed suitable to prevent imbalance.
 Chunks from 75\% of the WAV audio tracks for each genre were randomly selected to make up the training set, with chunks from the other 25\% of audio tracks for each genre making up the validation set.
 
-\section{CNN Architecture}
+\section{CNN Architecture (Schindler et al.)}
 
 I recreated the shallow CNN architecture outlined by Schindler et al.
 Log-mel spectrograms of shape $80\times80$ are provided as input to the network.
@@ -68,23 +68,56 @@ The final layer uses the softmax activation function.
 
 \section{Implementation Details}
 
-I used the \textit{PyTorch} \cite{PyTorch} to implement and train my CNN.
-
-\subsection{\texttt{ShallowCNN}}
-
-I created a \texttt{ShallowCNN} class, that inherit's from 
-
-\subsection{\texttt{Trainer}}
+I used the \textit{PyTorch} \cite{PyTorch} machine learning framework to implement and train my models.
 
 \subsection{Optimiser}
 
+I optimised my network using the Adam optimisation algorithm \cite{KingmaBa}, as implemented by the \texttt{torch.optim.Adam} class, with $\beta_1=0.9$, $\beta_2=0.999$, $\epsilon=1\times10^{-8}$ and a learning rate of $5\times10^{-5}$.
+
 \subsection{Loss function}
+
+I implemented the cross-entropy loss function using $PyTorch$'s \texttt{torch.nn.CrossEntropyLoss} class to measure the error between the output of the network and the label encoded in a one-hot representation.
 
 \subsection{Batch size}
 
+Schindler et al. did not specify the batch size they used for training.
+
 \subsection{Weight initialisation}
 
+Schindler et al. did not specify how they initialised the weights in their network.
+
+\subsection{\texttt{ShallowCNN}}
+
+To implement the CNN I created a \texttt{ShallowCNN} class that inherit's from the \texttt{torch.nn.Modules} class.
+I created a \texttt{forward} method in the class.
+
+\subsection{\texttt{Trainer}}
+
+I created a \texttt{Trainer} class 
+
+BlueCrystal Phase 4
+
 \section{Replicating Quantitative Results}
+
+Table \ref{shallow_results} displays the accuracy my implementation achieved on the validation dataset at both 100 and 200 epochs.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Shallow CNN Accuracy on the Validation Set}
+    \label{shallow_results}
+    \begin{IEEEeqnarraybox}[\IEEEeqnarraystrutmode\IEEEeqnarraystrutsizeadd{2pt}{1pt}]{v/c/v/c/v}
+    \IEEEeqnarrayrulerow\\
+    &\mbox{Epoch}&&\mbox{Accuracy (\%)}&\\
+    \IEEEeqnarraydblrulerow\\
+    \IEEEeqnarrayseprow[3pt]\\
+    &100&&63.71&\IEEEeqnarraystrutsize{0pt}{0pt}\\ \IEEEeqnarrayseprow[3pt]\\
+    \IEEEeqnarrayrulerow\\
+    \IEEEeqnarrayseprow[3pt]\\
+    &200&&65.09&\IEEEeqnarraystrutsize{0pt}{0pt}\\
+    \IEEEeqnarrayseprow[3pt]\\
+    \IEEEeqnarrayrulerow
+    \end{IEEEeqnarraybox}
+\end{table}
 
 \section{Training Curves}
 

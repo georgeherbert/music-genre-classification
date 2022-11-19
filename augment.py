@@ -44,7 +44,9 @@ def augment():
                         bins_per_octave=12
                     )
                     new_mel = create_mel(new_wave)
-                    new_dataset.append((sample[0], new_mel, sample[2], ""))
+                    new_dataset.append(
+                        (sample[0], new_mel, sample[2], np.array([]))
+                    )
         print(i // 15, len(new_dataset))
     with open("data/augment.pkl", "wb") as file:
         pickle.dump(new_dataset, file)
