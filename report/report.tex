@@ -29,30 +29,29 @@ music information retrieval, convolutional neural networks
 
 \section{Introduction}
 
-Music information retrieval (MIR) is the interdisciplinary science of retrieving information from music.
-Genre classification---classifying a sample of music into one or more genres---is a fundamental problem in MIR.
+Music genre classification---categorising a music sample into one or more genres---is a fundamental problem in music information retrieval.
+Early approaches to genre classification, such as that by Tzanetakis and Cook \cite{TzanetakisCook}, focused on training statistical classifiers using features such as timbral texture, rhythmic content and pitch content.
+More recently, convolutional neural networks (CNNs) have been widely investigated in the context of genre classification, following their successes in the field of computer vision.
 
-Schindler et al. \cite{SchindlerLidyRauber} investigated performance differences of different convolutional neural network (CNN) architectures on the task of genre classification.
-
+In one such paper, Schindler et al. \cite{SchindlerLidyRauber} investigated the performance of two different CNN architectures; in conjunction, they examined how data augmentation applied to four different datasets impacted the performance of both architectures.
 
 \section{Related Work}
 
 \section{Dataset}
 
-The GTZAN dataset \cite{TzanetakisEsslCook} contains 1000 WAV audio tracks, each 30 seconds in length.
+I used the the GTZAN dataset compiled by Tzanetakis and Cook \cite{TzanetakisCook} to train and validate my models; it contains 1000 WAV audio tracks, each 30 seconds in length.
 There are 100 tracks for each of the 10 genres in the dataset: blues, classical, country, disco, hip-hop, jazz, metal, pop, reggae and rock.
+The CNNs were trained on chunks of approximately 0.93 seconds that were randomly selected from each audio track.
 
-The CNNs were not trained on the raw tracks.
-Each audio track was divided into chunks, with log-mel spectograms produced for randomly selected chunks.
 To produce a training and validation set, a stratified split was deemed suitable to prevent imbalance.
-Spectograms for 75 of the 100 WAV audio tracks for each genre were randomly selected to make up the training set, with the spectograms for the other 25 audio tracks for each genre making up the validation set.
+Chunks from 75\% of the WAV audio tracks for each genre were randomly selected to make up the training set, with chunks from the other 25\% of audio tracks for each genre making up the validation set.
 
 \section{CNN Architecture}
 
 I recreated the shallow CNN architecture outlined by Schindler et al.
 Log-mel spectrograms of shape $80\times80$ are provided as input to the network.
 
-Since the dimensions of the spectograms correspond to time and frequency, Schindler et al. implemented a parallel architecture.
+Since the dimensions of the spectrograms correspond to time and frequency, Schindler et al. implemented a parallel architecture.
 The left pipeline aims to capture frequency relations.
 It first contains a convolutional layer (with padding) with 16 kernels of shape $10\times23$ to produce 16 square feature maps of shape $80\times80$.
 These are then downsampled using a $1\times20$ max pooling layer to produce 16 vertical rectangular feature maps of shape $80\times4$.
@@ -68,6 +67,22 @@ With the exception of the final layer, each convolutional and fully connected la
 The final layer uses the softmax activation function.
 
 \section{Implementation Details}
+
+I used the \textit{PyTorch} \cite{PyTorch} to implement and train my CNN.
+
+\subsection{\texttt{ShallowCNN}}
+
+I created a \texttt{ShallowCNN} class, that inherit's from 
+
+\subsection{\texttt{Trainer}}
+
+\subsection{Optimiser}
+
+\subsection{Loss function}
+
+\subsection{Batch size}
+
+\subsection{Weight initialisation}
 
 \section{Replicating Quantitative Results}
 

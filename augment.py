@@ -34,7 +34,7 @@ def augment():
         label = sample[2]
         wave = sample[3]
         new_dataset.append((file, mel, label, ""))
-        for change in (-5, -2, 2, 5):
+        for change in (-1, 1):
             # new_wave = librosa.effects.time_stretch(wave, rate=change)
             new_wave = librosa.effects.pitch_shift(
                 wave,
