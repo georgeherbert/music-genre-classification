@@ -27,7 +27,9 @@ def create_mel(wave):
 
 
 def augment():
-    new_dataset = DATASET
+    aug_dataset = DATASET.copy()
+    for i, (file, mel, label, _) in enumerate(aug_dataset):
+        aug_dataset[i] = (file, label, mel, np.array([]))
     for i in range(0, len(DATASET), 15):
         for stretch in (0.2, 0.5, 1.2, 1.5):
             for shift in (-5, -2, 2, 5):
@@ -44,12 +46,12 @@ def augment():
                         bins_per_octave=12
                     )
                     new_mel = create_mel(new_wave)
-                    new_dataset.append(
+                    aug_dataset.append(
                         (sample[0], new_mel, sample[2], np.array([]))
                     )
-        print(i // 15, len(new_dataset))
+        print(i // 15, len(aug_dataset))
     with open("data/augment.pkl", "wb") as file:
-        pickle.dump(new_dataset, file)
+        pickle.dump(aug_dataset, file)
 
 
 if __name__ == "__main__":
