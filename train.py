@@ -178,7 +178,7 @@ class Trainer:
 if __name__ == "__main__":
     model = ShallowCNN()
     train_loader = DataLoader(
-        dataset=GTZAN("data/train.pkl"),
+        dataset=GTZAN("data/augment.pkl"),
         shuffle=True,
         batch_size=64,
         pin_memory=True
