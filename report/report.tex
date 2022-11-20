@@ -124,11 +124,18 @@ Table \ref{shallow_results} displays the accuracy my implementation achieved on 
 
 \section{Training Curves}
 
+Overfitting occurs when a network learns the noise in the data as if it represents the structure of the underlying model.
+To detect overfitting, loss and accuracy are important metrics to monitor during training; Figure \ref{accuracy_curves} and Figure \ref{loss_curves} display the accuracy and loss curves for my network, respectively.
+For the training set, I logged the loss and accuracy of the batch at the end of each step; for the validation set, I logged the loss and accuracy of the entire validation set at the end of each epoch.
+
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=\columnwidth]{accuracy.png}}
     \caption{Accuracy curves}
     \label{accuracy_curves}
 \end{figure}
+
+After 200 epochs, there is a discrepency of approximately 35\% in the accuracy of the model on the training and validation sets---this strongly indicates that the shallow CNN architecture has overfit.
+Despite using L1 regularisation and dropout, the model has memorised almost every sample in the training set, and therefore struggles to generalise to unseen data.
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=\columnwidth]{loss.png}}

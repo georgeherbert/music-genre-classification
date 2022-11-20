@@ -8,11 +8,10 @@ from datetime import datetime
 from dataset import GTZAN
 from evaluation import evaluate
 
-import numpy as np
-
 import argparse
 
 torch.backends.cudnn.benchmark = True
+# torch.autograd.set_detect_anomaly(True)
 
 DEVICE = torch.device("cuda")
 
@@ -145,7 +144,7 @@ class Trainer:
             for _, batch, labels, _ in self.val_loader:
                 batch = batch.to(self.device)
                 labels = labels.to(self.device)
-                logits = self.model.forward(batch)
+                logits = self.model(batch)
                 loss = self.calc_loss(logits, labels)
                 total_loss += loss.item()
                 results = torch.cat((results, logits.cpu()), 0)
@@ -160,7 +159,7 @@ class Trainer:
     ):
         batch = batch.to(self.device)
         labels = labels.to(self.device)
-        logits = self.model.forward(batch)
+        logits = self.model(batch)
         loss = self.calc_loss(logits, labels)
         loss.backward()
         self.optimiser.step()
