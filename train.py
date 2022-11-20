@@ -8,26 +8,19 @@ from datetime import datetime
 from dataset import GTZAN
 from evaluation import evaluate
 
+import numpy as np
+
+import argparse
+
 torch.backends.cudnn.benchmark = True
 
 DEVICE = torch.device("cuda")
 
 
-class CNN(torch.nn.Module):
-    def __init__(self):
+class ShallowCNN(torch.nn.Module):
+    def __init__(self, batch_norm: bool):
         super().__init__()
-
-    @staticmethod
-    def initialise_layer(layer):
-        if hasattr(layer, "bias"):
-            torch.nn.init.zeros_(layer.bias)
-        if hasattr(layer, "weight"):
-            torch.nn.init.kaiming_normal_(layer.weight)
-
-
-class ShallowCNN(CNN):
-    def __init__(self):
-        super().__init__()
+        self.batch_norm = batch_norm
         self.conv_left = torch.nn.Conv2d(
             in_channels=1,
             out_channels=16,
@@ -40,6 +33,8 @@ class ShallowCNN(CNN):
             kernel_size=(21, 20),
             padding="same"
         )
+        self.bn_conv_left = torch.nn.BatchNorm2d(16)
+        self.bn_conv_right = torch.nn.BatchNorm2d(16)
         self.pool_left = torch.nn.MaxPool2d(
             kernel_size=(1, 20),
             stride=(1, 20)
@@ -50,6 +45,7 @@ class ShallowCNN(CNN):
         )
         self.leaky_relu = torch.nn.LeakyReLU(0.3)
         self.fc_1 = torch.nn.Linear(10240, 200)
+        self.bn_fc_1 = torch.nn.BatchNorm1d(200)
         self.dropout = torch.nn.Dropout(0.1)
         self.fc_2 = torch.nn.Linear(200, 10)
         self.initialise_layer(self.conv_left)
@@ -58,9 +54,15 @@ class ShallowCNN(CNN):
         self.initialise_layer(self.fc_2)
 
     def forward(self, images: torch.Tensor) -> torch.Tensor:
-        x_left = self.leaky_relu(self.conv_left((images)))
+        x_left = self.conv_left(images)
+        if self.batch_norm:
+            x_left = self.bn_conv_left(x_left)
+        x_left = self.leaky_relu(x_left)
         x_left = self.pool_left(x_left)
-        x_right = self.leaky_relu(self.conv_right((images)))
+        x_right = self.conv_right(images)
+        if self.batch_norm:
+            x_right = self.bn_conv_right(x_right)
+        x_right = self.leaky_relu(x_right)
         x_right = self.pool_right(x_right)
         x = torch.cat(
             [
@@ -69,120 +71,20 @@ class ShallowCNN(CNN):
             ],
             dim=1
         )
-        x = self.leaky_relu(self.fc_1(x))
+        x = self.fc_1(x)
+        x = self.leaky_relu(x)
         x = self.dropout(x)
+        x = self.bn_fc_1(x)
         x = self.fc_2(x)
         return x
 
-    
-# class DeepCNN(CNN):
-#     def __init__(self):
-#         super().__init__()
-#         self.conv_left_1 = torch.nn.Conv2d(
-#             in_channels=1,
-#             out_channels=16,
-#             kernel_size=(10, 23),
-#             padding="same"
-#         )
-#         self.conv_right_1 = torch.nn.Conv2d(
-#             in_channels=1,
-#             out_channels=16,
-#             kernel_size=(21, 20),
-#             padding="same"
-#         )
-#         self.pool_both_1 = torch.nn.MaxPool2d(
-#             kernel_size=(2, 2),
-#             stride=(2, 2)
-#         )
-#         self.conv_left_2 = torch.nn.Conv2d(
-#             in_channels=16,
-#             out_channels=32,
-#             kernel_size=(5,11),
-#             padding="same"
-#         )
-#         self.conv_right_2 = torch.nn.Conv2d(
-#             in_channels=16,
-#             out_channels=32,
-#             kernel_size=(10,5),
-#             padding="same"
-#         )
-#         self.conv_left_3 = torch.nn.Conv2d(
-#             in_channels=32,
-#             out_channels=64,
-#             kernel_size=(3,5),
-#             padding="same"
-#         )
-#         self.conv_right_3 = torch.nn.Conv2d(
-#             in_channels=32,
-#             out_channels=64,
-#             kernel_size=(5,3),
-#             padding="same"
-#         )
-#         self.conv_left_4 = torch.nn.Conv2d(
-#             in_channels=64,
-#             out_channels=128,
-#             kernel_size=(2,4),
-#             padding="same"
-#         )
-#         self.conv_right_4 = torch.nn.Conv2d(
-#             in_channels=64,
-#             out_channels=128,
-#             kernel_size=(4,2),
-#             padding="same"
-#         )
-#         self.pool_left_1 = torch.nn.MaxPool2d(
-#             kernel_size=(1, 5),
-#             stride=(1, 5)
-#         )
-#         self.pool_right_1 = torch.nn.MaxPool2d(
-#             kernel_size=(5, 1),
-#             stride=(5, 1)
-#         )
-#         self.fc_1 = torch.nn.Linear(5120, 200)
-#         self.leaky_relu = torch.nn.LeakyReLU(0.3)
-#         self.dropout = torch.nn.Dropout(0.25)
-#         self.fc_2 = torch.nn.Linear(200, 10)
-#         self.initialise_layer(self.conv_left_1)
-#         self.initialise_layer(self.conv_right_1)
-#         self.initialise_layer(self.conv_left_2)
-#         self.initialise_layer(self.conv_right_2)
-#         self.initialise_layer(self.conv_left_3)
-#         self.initialise_layer(self.conv_right_3)
-#         self.initialise_layer(self.conv_left_4)
-#         self.initialise_layer(self.conv_right_4)
-#         self.initialise_layer(self.conv_left_1)
-#         self.initialise_layer(self.fc_1)
-#         self.initialise_layer(self.fc_2)
+    @staticmethod
+    def initialise_layer(layer):
+        if hasattr(layer, "bias"):
+            torch.nn.init.zeros_(layer.bias)
+        if hasattr(layer, "weight"):
+            torch.nn.init.kaiming_normal_(layer.weight)
 
-#     def forward(self, images: torch.Tensor) -> torch.Tensor:
-#         x_left = self.leaky_relu(self.conv_left_1((images)))
-#         x_left = self.pool_both_1(x_left)
-#         x_left = self.leaky_relu(self.conv_left_2((x_left)))
-#         x_left = self.pool_both_1(x_left)
-#         x_left = self.leaky_relu(self.conv_left_3((x_left)))
-#         x_left = self.pool_both_1(x_left)
-#         x_left = self.leaky_relu(self.conv_left_4((x_left)))
-#         x_left = self.pool_left_1(x_left)
-
-#         x_right = self.leaky_relu(self.conv_left_1((images)))
-#         x_right = self.pool_both_1(x_right)
-#         x_right = self.leaky_relu(self.conv_left_2((x_right)))
-#         x_right = self.pool_both_1(x_right)
-#         x_right = self.leaky_relu(self.conv_left_3((x_right)))
-#         x_right = self.pool_both_1(x_right)
-#         x_right = self.leaky_relu(self.conv_left_4((x_right)))
-#         x_right = self.pool_left_1(x_right)
-#         x = torch.cat(
-#             [
-#                 torch.flatten(x_left, start_dim=1),
-#                 torch.flatten(x_right, start_dim=1)
-#             ],
-#             dim=1
-#         )
-#         x = self.leaky_relu(self.fc_1(x))
-#         x = self.dropout(x)
-#         x = self.fc_2(x)
-#         return x
 
 class Trainer:
     def __init__(
@@ -284,18 +186,41 @@ class Trainer:
                 self.model.train()
 
 
-if __name__ == "__main__":
-    model = ShallowCNN()
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-e",
+        "--n-epochs",
+        type=int,
+        default=200,
+        help="Number of epochs"
+    )
+    parser.add_argument(
+        "-bs",
+        "--batch-size",
+        type=int,
+        default=64,
+        help="Training batch size"
+    )
+    parser.add_argument(
+        "-bn",
+        "--batch-norm",
+        action='store_true',
+        help="Batch normalisation after convolutional layers"
+    )
+    args = parser.parse_args()
+
+    model = ShallowCNN(args.batch_norm)
     train_loader = DataLoader(
-        dataset=GTZAN("data/augment.pkl"),
+        dataset=GTZAN("data/train.pkl"),
         shuffle=True,
-        batch_size=64,
+        batch_size=args.batch_size,
         pin_memory=True
     )
     val_loader = DataLoader(
         dataset=GTZAN("data/val.pkl"),
         shuffle=False,
-        batch_size=64,
+        batch_size=3750,
         pin_memory=True
     )
     criterion = torch.nn.CrossEntropyLoss()
@@ -305,8 +230,11 @@ if __name__ == "__main__":
         betas=(0.9, 0.999),
         eps=1e-8
     )
+    log_dir = f"logs/{datetime.now().strftime('%d-%H%M%S')}_bs{args.batch_size}"
+    if args.batch_norm:
+        log_dir += "_bn"
     summary_writer = SummaryWriter(
-        log_dir="logs/" + datetime.now().strftime("%Y%m%d-%H%M%S"),
+        log_dir=log_dir,
         flush_secs=5
     )
     trainer = Trainer(
@@ -319,6 +247,10 @@ if __name__ == "__main__":
         summary_writer=summary_writer
     )
     trainer.train(
-        epochs=200,
+        epochs=args.n_epochs,
     )
     summary_writer.close()
+
+
+if __name__ == "__main__":
+    main()
