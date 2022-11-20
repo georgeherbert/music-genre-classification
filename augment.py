@@ -31,8 +31,8 @@ def augment():
     for i, (file, mel, label, _) in enumerate(aug_dataset):
         aug_dataset[i] = (file, mel, label, np.array([]))
     for i in range(0, len(DATASET), 15):
-        for stretch in (0.2, 0.5, 1.2, 1.5):
-            for shift in (-5, -2, 2, 5):
+        for stretch in (0.95, 1.05):
+            for shift in (-0.5, 0.5):
                 for j in random.sample(range(15), 3):
                     sample = DATASET[i + j]
                     new_wave = librosa.effects.time_stretch(

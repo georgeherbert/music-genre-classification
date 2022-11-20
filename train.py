@@ -18,7 +18,7 @@ DEVICE = torch.device("cuda")
 
 
 class ShallowCNN(torch.nn.Module):
-    def __init__(self, batch_norm: bool):
+    def __init__(self, batch_norm: bool = False):
         super().__init__()
         self.batch_norm = batch_norm
         self.conv_left = torch.nn.Conv2d(
@@ -45,7 +45,6 @@ class ShallowCNN(torch.nn.Module):
         )
         self.leaky_relu = torch.nn.LeakyReLU(0.3)
         self.fc_1 = torch.nn.Linear(10240, 200)
-        self.bn_fc_1 = torch.nn.BatchNorm1d(200)
         self.dropout = torch.nn.Dropout(0.1)
         self.fc_2 = torch.nn.Linear(200, 10)
         self.initialise_layer(self.conv_left)
@@ -74,7 +73,6 @@ class ShallowCNN(torch.nn.Module):
         x = self.fc_1(x)
         x = self.leaky_relu(x)
         x = self.dropout(x)
-        x = self.bn_fc_1(x)
         x = self.fc_2(x)
         return x
 
@@ -208,11 +206,21 @@ def main():
         action='store_true',
         help="Batch normalisation after convolutional layers"
     )
+    parser.add_argument(
+        "-a",
+        "--augment",
+        action='store_true',
+        help="Train with the augmented dataset"
+    )
     args = parser.parse_args()
 
-    model = ShallowCNN(args.batch_norm)
+    model = ShallowCNN(
+        batch_norm=args.batch_norm
+    )
     train_loader = DataLoader(
-        dataset=GTZAN("data/train.pkl"),
+        dataset=GTZAN(
+            f"data/{'augment' if args.augment else 'train'}.pkl"
+        ),
         shuffle=True,
         batch_size=args.batch_size,
         pin_memory=True
@@ -233,6 +241,8 @@ def main():
     log_dir = f"logs/{datetime.now().strftime('%d-%H%M%S')}_bs{args.batch_size}"
     if args.batch_norm:
         log_dir += "_bn"
+    if args.augment:
+        log_dir += "_a"
     summary_writer = SummaryWriter(
         log_dir=log_dir,
         flush_secs=5
