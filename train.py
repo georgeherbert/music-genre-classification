@@ -27,26 +27,30 @@ class ShallowCNN(torch.nn.Module):
             kernel_size=(10, 23),
             padding="same"
         )
+        self.bn_conv_left = torch.nn.BatchNorm2d(16)
+        self.pool_left = torch.nn.MaxPool2d(
+            kernel_size=(1, 20),
+            stride=(1, 20)
+        )
+
         self.conv_right = torch.nn.Conv2d(
             in_channels=1,
             out_channels=16,
             kernel_size=(21, 20),
             padding="same"
         )
-        self.bn_conv_left = torch.nn.BatchNorm2d(16)
         self.bn_conv_right = torch.nn.BatchNorm2d(16)
-        self.pool_left = torch.nn.MaxPool2d(
-            kernel_size=(1, 20),
-            stride=(1, 20)
-        )
         self.pool_right = torch.nn.MaxPool2d(
             kernel_size=(20, 1),
             stride=(20, 1)
         )
-        self.leaky_relu = torch.nn.LeakyReLU(0.3)
+
         self.fc_1 = torch.nn.Linear(10240, 200)
         self.dropout = torch.nn.Dropout(0.1)
         self.fc_2 = torch.nn.Linear(200, 10)
+
+        self.leaky_relu = torch.nn.LeakyReLU(0.3)
+
         self.initialise_layer(self.conv_left)
         self.initialise_layer(self.conv_right)
         self.initialise_layer(self.fc_1)
