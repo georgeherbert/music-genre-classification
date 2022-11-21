@@ -194,6 +194,7 @@ class Trainer:
     def train(
         self,
         epochs: int,
+        save: bool = False,
         log_frequency: int = 1,
         val_frequency: int = 1
     ):
@@ -205,11 +206,11 @@ class Trainer:
             if (epoch + 1) % val_frequency == 0:
                 self.validate()
                 self.model.train()
-            if epoch == epochs - 1:
+            if save and epoch == epochs - 1:
                 self.save_final_preds()
 
 
-def main():
+def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-e",
@@ -226,6 +227,20 @@ def main():
         help="Training batch size"
     )
     parser.add_argument(
+        "-lf",
+        "--log-frequency",
+        type=int,
+        default=100,
+        help="Training log frequency (iterations)"
+    )
+    parser.add_argument(
+        "-vf",
+        "--val-frequency",
+        type=int,
+        default=5,
+        help="Validation log frequency (epochs)"
+    )
+    parser.add_argument(
         "-bn",
         "--batch-norm",
         action='store_true',
@@ -237,8 +252,17 @@ def main():
         action='store_true',
         help="Train with the augmented dataset"
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "-s",
+        "--save",
+        action='store_true',
+        help="Save the final predictions"
+    )
+    return parser.parse_args()
 
+
+def main():
+    args = parse_arguments()
     model = ShallowCNN(
         batch_norm=args.batch_norm
     )
@@ -283,6 +307,9 @@ def main():
     )
     trainer.train(
         epochs=args.n_epochs,
+        save=args.save,
+        log_frequency=args.log_frequency,
+        val_frequency=args.val_frequency
     )
     summary_writer.close()
 
