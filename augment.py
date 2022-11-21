@@ -36,20 +36,20 @@ def augment():
     for i, (file, mel, label, _) in enumerate(aug_dataset):
         aug_dataset[i] = (file, mel, label, np.array([]))
     for i in range(0, len(DATASET), 15):
-        for stretch in (0.2, 0.5, 1.2, 1.5):
+        # for stretch in (0.2, 0.5, 1.2, 1.5):
         # for shift in (-1, 1):
-        # for shift in (-5, -2, 2, 5):
+        for shift in (-1, 1):
             for j in random.sample(range(15), 3):
                 sample = DATASET[i + j]
-                # new_wave = torchaudio.functional.pitch_shift(
-                #     torch.Tensor(sample[3]),
-                #     sample_rate=22050,
-                #     n_steps=shift
-                # )
-                new_wave = librosa.effects.time_stretch(
-                    sample[3],
-                    rate=stretch
+                new_wave = torchaudio.functional.pitch_shift(
+                    torch.Tensor(sample[3]),
+                    sample_rate=22050,
+                    n_steps=shift
                 )
+                # new_wave = librosa.effects.time_stretch(
+                #     sample[3],
+                #     rate=stretch
+                # )
                 # new_wave = librosa.effects.pitch_shift(
                 #     sample[3],
                 #     sr=22050,
@@ -57,6 +57,7 @@ def augment():
                 #     bins_per_octave=12
                 # )
                 new_mel = create_mel(new_wave)
+                
                 aug_dataset.append(
                     (sample[0], new_mel, sample[2], np.array([]))
                 )

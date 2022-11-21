@@ -14,4 +14,4 @@ module purge
 # load in the module dependencies for this script
 module load "languages/anaconda3/2021-3.8.8-cuda-11.1-pytorch"
 
-python train.py -vf 1 -e 200 -s
+python train.py -vf 1 -e 300 -bs 128

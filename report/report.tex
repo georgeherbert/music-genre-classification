@@ -98,7 +98,7 @@ Batch size is a fundamental hyperparameter to consider when training deep networ
 Smaller batches give rise to longer epochs and introduce extra noise to the weight updates; however, this noise can prove beneficial if the error manifold has many deep local optima.
 Conversely, larger batches give rise to shorter epochs, but networks trained with large batches often struggle to generalise.
 Schindler et al. did not identify the batch size they used for training.
-Thus, I experimented with multiple batch sizes, and found that my results were most similar with a batch size of 64.
+Thus, I experimented with multiple batch sizes, and found that my results were most similar with a batch size of 128.
 
 \subsection{Classes}
 
@@ -109,6 +109,10 @@ Additionally, I created a \texttt{Trainer} class
 \section{Replicating Quantitative Results}
 
 Table \ref{shallow_results} displays the accuracy my implementation achieved on the test dataset at both 100 and 200 epochs.
+My implementation achieved an accuracy approximately 3\% lower than that of Schindler et al at both 100 and 200 epochs.
+Though I cannot determine the exact reason for this discrepency, I can speculate on several potential reasons.
+Firstly, Schindler et al. may not have specified the full design details of the network necessary for reproducibility.
+Alternatively, it may due to the fact that the $Keras$ library used by Schindler et al. often has different default parameters than the $PyTorch$ library I produced my implementation in.
 
 \begin{table}[htbp]
     \caption{Shallow CNN Accuracy on the Test Set}
@@ -117,7 +121,7 @@ Table \ref{shallow_results} displays the accuracy my implementation achieved on 
     \hline
     \textbf{Model}&\textbf{Epoch}&\textbf{Accuracy}\\
     \hline
-    \multirow{ 2}{*}{My Implementation} & 100 & 63.2\\
+    \multirow{ 2}{*}{My implementation} & 100 & 63.2\\
     & 200 & 52.1\\
     \hline
     \multirow{ 2}{*}{Schindler et al.} & 100 & 66.56\\
@@ -127,6 +131,12 @@ Table \ref{shallow_results} displays the accuracy my implementation achieved on 
     \label{shallow_results}
     \end{center}
 \end{table}
+
+\begin{figure}[htbp]
+    \centerline{\includegraphics[width=\columnwidth]{cm.png}}
+    \caption{Confusion matrix}
+    \label{confusion_matrix}
+\end{figure}
 
 \section{Training Curves}
 
@@ -151,15 +161,25 @@ Despite using L1 regularisation and dropout, the model had memorised almost ever
 
 \section{Qualitative Results}
 
-\begin{figure}[htbp]
-    \centerline{\includegraphics[width=\columnwidth]{cm.png}}
-    \caption{Confusion matrix}
-    \label{loss_curves}
-\end{figure}
+The model achieved a high accuracy on specific genres, but a low accuracy on others, as evidenced by the confusion matrix in Figure \ref{confusion_matrix}.
+Notably, it accurately classified samples from the classical and metal genres over 85\% of the time.
+While conversely, it only managed to accurately classify approximately 40\% of samples from the rock and reggae genres.
+
+An analysis of the spectrograms from these genres reveals potential reasons for these discrepencies in per-class accuracy.
 
 \section{Improvements}
 
-From the training curves, it was evident that the network was overfitting.
+The training curves in Figure \ref{accuracy_curves} and Figure \ref{loss_curves} highlighted that the network was severely overfitting.
+To improve the performance of my network, I experimented with data augmentation: a common technique employed to reduce overfitting that involves the creation of new synthetic data.
+In the context of audio data, augmentation can take several forms; Schindler et al. experimented with two forms of augmentation: pitch shifting and time stretching.
+I opted to implement pitch shifting: a technique in which the original pitch of an audio sampled is raised or lowered, whilst the tempo is unchanged.
+I implemented the same shifts as Schindler et al.: raising and lowering the pitch by 2 and 5 semitones.
+I applied each of these four shifts to three samples randomly selected from each audio file.
+
+Unlike Schindler et al., training my network on the augmented dataset yielded a small improvement in accuracy.
+Furthermore, the training curves confirmed that the degree to which my network was overfitting was significantly reduced.
+
+To further improve the performance of my network, I implemented batch normalisation following the two convolutional layers in my network.
 
 \section{Conclusion and Future Work}
 

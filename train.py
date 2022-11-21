@@ -66,7 +66,7 @@ class ShallowCNN(nn.Module):
         if hasattr(layer, "bias"):
             nn.init.zeros_(layer.bias)
         if hasattr(layer, "weight"):
-            nn.init.kaiming_uniform_(layer.weight, 0.3)
+            nn.init.kaiming_normal_(layer.weight, 0.3)
 
 
 class Trainer:
@@ -89,13 +89,13 @@ class Trainer:
         self.summary_writer = summary_writer
         self.step = 0
 
-    def l1_penalty(self, penalty: float = 0.0001) -> torch.Tensor:
+    def l1_penalty(self, penalty) -> torch.Tensor:
         params = self.model.named_parameters()
         weights = torch.cat([p.view(-1) for n, p in params if ".weight" in n])
         return weights.abs().sum() * penalty
 
     def calc_loss(self, logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-        return self.criterion(logits, labels) + self.l1_penalty()
+        return self.criterion(logits, labels) + self.l1_penalty(0.0001)
 
     def log_curves(self, type: str, loss: float, accuracy: float):
         self.summary_writer.add_scalars(
@@ -144,7 +144,7 @@ class Trainer:
         self.model.eval()
         labels_all = torch.Tensor()
         preds_all = torch.Tensor()
-        names_all = ()
+        names_all = []
         with torch.no_grad():
             for names, batch, labels, _ in self.val_loader:
                 batch = batch.to(self.device)
