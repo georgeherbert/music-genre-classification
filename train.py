@@ -10,6 +10,8 @@ from evaluation import evaluate
 
 import argparse
 
+import pickle
+
 torch.backends.cudnn.benchmark = True
 # torch.autograd.set_detect_anomaly(True)
 
@@ -84,7 +86,10 @@ class ShallowCNN(torch.nn.Module):
         if hasattr(layer, "bias"):
             torch.nn.init.zeros_(layer.bias)
         if hasattr(layer, "weight"):
-            torch.nn.init.kaiming_normal_(layer.weight)
+            torch.nn.init.kaiming_uniform_(
+                layer.weight,
+                a=0.3
+            )
 
 
 class Trainer:
@@ -171,6 +176,21 @@ class Trainer:
             self.log_curves("train", loss.item(), accuracy)
         self.step += 1
 
+    def save_final_preds(self):
+        self.model.eval()
+        labels_all = torch.Tensor()
+        preds_all = torch.Tensor()
+        with torch.no_grad():
+            for _, batch, labels, _ in self.val_loader:
+                batch = batch.to(self.device)
+                labels = labels.to(self.device)
+                logits = self.model(batch)
+                preds = logits.argmax(-1)
+                labels_all = torch.cat((labels_all, labels.cpu()))
+                preds_all = torch.cat((preds_all, preds.cpu()))
+            with open("preds.pkl", "wb") as file:
+                pickle.dump((labels_all, preds_all), file)
+
     def train(
         self,
         epochs: int,
@@ -185,6 +205,8 @@ class Trainer:
             if (epoch + 1) % val_frequency == 0:
                 self.validate()
                 self.model.train()
+            if epoch == epochs - 1:
+                self.save_final_preds()
 
 
 def main():

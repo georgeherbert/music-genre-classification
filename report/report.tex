@@ -79,26 +79,32 @@ I optimised my network using the Adam optimisation algorithm \cite{KingmaBa}, as
 
 \subsection{Loss function}
 
-I implemented the cross-entropy loss function using $PyTorch$'s \texttt{torch.nn.CrossEntropyLoss} class to measure the error between the output of the network and the label encoded in a one-hot representation.
+I implemented the cross-entropy loss function using \textit{PyTorch}'s \texttt{torch.nn.CrossEntropyLoss} class to measure the error between the output of the network and the label encoded in a one-hot representation.
 
-\subsection{Batch size}
-
-Schindler et al. did not specify the batch size they used for training.
+Regularisation.
 
 \subsection{Weight initialisation}
 
-Schindler et al. did not specify how they initialised the weights in their network.
+Weight initialisation is an important design choice, since it determines the starting point of the optimisation procedure.
+Schindler et al. did not specify the procedure they used.
+However, modern weight initialisation heuristics exist that depend on the activation function.
+The shallow CNN architecture uses LeakyReLU, so I implemented He initialisation using \textit{PyTorch}'s \texttt{torch.nn.init.kaiming\_normal} procedure.
 
-\subsection{\texttt{ShallowCNN}}
+\subsection{Batch size}
 
-To implement the CNN I created a \texttt{ShallowCNN} class that inherit's from the \texttt{torch.nn.Modules} class.
-I created a \texttt{forward} method in the class.
+Batch size is a fundamental hyperparameter to consider when training deep networks.
+Smaller batches give rise to longer epochs and introduce extra noise to the weight updates; however, this noise can prove beneficial if the error manifold has many deep local optima.
+Conversely, larger batches give rise to shorter epochs, but networks trained with large batches often struggle to generalise.
+Schindler et al. did not identify the batch size they used for training.
+Thus, I experimented with multiple batch sizes, and found that my results were most similar with a batch size of 64.
 
-\subsection{\texttt{Trainer}}
+\subsection{BlueCrystal Phase 4}
 
-I created a \texttt{Trainer} class 
+To implement the CNN I created a \texttt{ShallowCNN} subclass that inherit's from \textit{PyTorch}'s \texttt{torch.nn.Modules} class.
+The class contains a \texttt{forward} method to conduct the forward pass.
+Additionally, I created a \texttt{Trainer} class 
 
-BlueCrystal Phase 4
+I trained my network on BlueCrystal Phase 4.
 
 \section{Replicating Quantitative Results}
 
@@ -145,7 +151,15 @@ Despite using L1 regularisation and dropout, the model has memorised almost ever
 
 \section{Qualitative Results}
 
+\begin{figure}[htbp]
+    \centerline{\includegraphics[width=\columnwidth]{cm.png}}
+    \caption{Confusion matrix}
+    \label{loss_curves}
+\end{figure}
+
 \section{Improvements}
+
+From the training curves, it was evident that the network was overfitting.
 
 \section{Conclusion and Future Work}
 
