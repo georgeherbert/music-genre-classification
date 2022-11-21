@@ -3,6 +3,7 @@
 % \usepackage{amsmath,amssymb,amsfonts}
 % \usepackage{algorithmic}
 \usepackage{graphicx}
+\usepackage{multirow}
 % \usepackage{textcomp}
 % \usepackage{xcolor}
 \graphicspath{{./images/}}
@@ -46,8 +47,8 @@ I used the the GTZAN dataset compiled by Tzanetakis and Cook \cite{TzanetakisCoo
 There are 100 tracks for each of the 10 genres in the dataset: blues, classical, country, disco, hip-hop, jazz, metal, pop, reggae and rock.
 The CNNs were trained on chunks of approximately 0.93 seconds that were randomly selected from each audio track.
 
-To produce a training and validation set, a stratified split was deemed suitable to prevent imbalance.
-Chunks from 75\% of the WAV audio tracks for each genre were randomly selected to make up the training set, with chunks from the other 25\% of audio tracks for each genre making up the validation set.
+To produce a training and test set, a stratified split was deemed suitable to prevent imbalance.
+Chunks from 75\% of the WAV audio tracks for each genre were randomly selected to make up the training set, with chunks from the other 25\% of audio tracks for each genre making up the test set.
 
 \section{CNN Architecture (Schindler et al.)}
 
@@ -71,7 +72,8 @@ The final layer uses the softmax activation function.
 
 \section{Implementation Details}
 
-I used the \textit{PyTorch} \cite{PyTorch} machine learning framework to implement and train my models.
+I constructed my implementation using Python and the \textit{PyTorch} \cite{PyTorch} machine learning framework.
+I trained my network on a BlueCrystal Phase 4 GPU node, which contains two NVIDIA Tesla P100 GPUs \cite{bc4}.
 
 \subsection{Optimiser}
 
@@ -88,7 +90,7 @@ Regularisation.
 Weight initialisation is an important design choice, since it determines the starting point of the optimisation procedure.
 Schindler et al. did not specify the procedure they used.
 However, modern weight initialisation heuristics exist that depend on the activation function.
-The shallow CNN architecture uses LeakyReLU, so I implemented He initialisation using \textit{PyTorch}'s \texttt{torch.nn.init.kaiming\_normal} procedure.
+The shallow CNN architecture uses LeakyReLU, so I implemented He initialisation using \textit{PyTorch}'s \texttt{torch.nn.init.kaiming\_uniform} procedure.
 
 \subsection{Batch size}
 
@@ -98,41 +100,39 @@ Conversely, larger batches give rise to shorter epochs, but networks trained wit
 Schindler et al. did not identify the batch size they used for training.
 Thus, I experimented with multiple batch sizes, and found that my results were most similar with a batch size of 64.
 
-\subsection{BlueCrystal Phase 4}
+\subsection{Classes}
 
 To implement the CNN I created a \texttt{ShallowCNN} subclass that inherit's from \textit{PyTorch}'s \texttt{torch.nn.Modules} class.
 The class contains a \texttt{forward} method to conduct the forward pass.
 Additionally, I created a \texttt{Trainer} class 
 
-I trained my network on BlueCrystal Phase 4.
-
 \section{Replicating Quantitative Results}
 
-Table \ref{shallow_results} displays the accuracy my implementation achieved on the validation dataset at both 100 and 200 epochs.
+Table \ref{shallow_results} displays the accuracy my implementation achieved on the test dataset at both 100 and 200 epochs.
 
 \begin{table}[htbp]
-    \centering
-    \caption{Shallow CNN Accuracy on the Validation Set}
+    \caption{Shallow CNN Accuracy on the Test Set}
+    \begin{center}
+    \begin{tabular}{|c|c|c|}
+    \hline
+    \textbf{Model}&\textbf{Epoch}&\textbf{Accuracy}\\
+    \hline
+    \multirow{ 2}{*}{My Implementation} & 100 & 63.2\\
+    & 200 & 52.1\\
+    \hline
+    \multirow{ 2}{*}{Schindler et al.} & 100 & 66.56\\
+    & 200 & 67.49\\
+    \hline
+    \end{tabular}
     \label{shallow_results}
-    \begin{IEEEeqnarraybox}[\IEEEeqnarraystrutmode\IEEEeqnarraystrutsizeadd{2pt}{1pt}]{v/c/v/c/v}
-    \IEEEeqnarrayrulerow\\
-    &\mbox{Epoch}&&\mbox{Accuracy (\%)}&\\
-    \IEEEeqnarraydblrulerow\\
-    \IEEEeqnarrayseprow[3pt]\\
-    &100&&63.71&\IEEEeqnarraystrutsize{0pt}{0pt}\\ \IEEEeqnarrayseprow[3pt]\\
-    \IEEEeqnarrayrulerow\\
-    \IEEEeqnarrayseprow[3pt]\\
-    &200&&65.09&\IEEEeqnarraystrutsize{0pt}{0pt}\\
-    \IEEEeqnarrayseprow[3pt]\\
-    \IEEEeqnarrayrulerow
-    \end{IEEEeqnarraybox}
+    \end{center}
 \end{table}
 
 \section{Training Curves}
 
 Overfitting occurs when a network learns the noise in the data as if it represents the structure of the underlying model.
 To detect overfitting, loss and accuracy are important metrics to monitor during training; Figure \ref{accuracy_curves} and Figure \ref{loss_curves} display the accuracy and loss curves for my network, respectively.
-For the training set, I logged the loss and accuracy of the batch at the end of each step; for the validation set, I logged the loss and accuracy of the entire validation set at the end of each epoch.
+For the training set, I logged the loss and accuracy of the batch at the end of each step; for the test set, I logged the loss and accuracy of the entire test set at the end of each epoch.
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=\columnwidth]{accuracy.png}}
@@ -140,8 +140,8 @@ For the training set, I logged the loss and accuracy of the batch at the end of 
     \label{accuracy_curves}
 \end{figure}
 
-After 200 epochs, there is a discrepency of approximately 35\% in the accuracy of the model on the training and validation sets---this strongly indicates that the shallow CNN architecture has overfit.
-Despite using L1 regularisation and dropout, the model has memorised almost every sample in the training set, and therefore struggles to generalise to unseen data.
+After 200 epochs, there was a discrepency of approximately 35\% in the accuracy of the model on the training and test sets---this strongly indicates that the shallow CNN architecture overfit.
+Despite using L1 regularisation and dropout, the model had memorised almost every sample in the training set, and therefore struggled to generalise to unseen data.
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=\columnwidth]{loss.png}}

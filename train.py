@@ -144,16 +144,18 @@ class Trainer:
         self.model.eval()
         labels_all = torch.Tensor()
         preds_all = torch.Tensor()
+        names_all = ()
         with torch.no_grad():
-            for _, batch, labels, _ in self.val_loader:
+            for names, batch, labels, _ in self.val_loader:
                 batch = batch.to(self.device)
                 labels = labels.to(self.device)
                 logits = self.model(batch)
                 preds = logits.argmax(-1)
                 labels_all = torch.cat((labels_all, labels.cpu()))
                 preds_all = torch.cat((preds_all, preds.cpu()))
+                names_all += names
             with open("preds.pkl", "wb") as file:
-                pickle.dump((labels_all, preds_all), file)
+                pickle.dump((labels_all, preds_all, names_all), file)
 
     def train(
         self,
@@ -164,7 +166,6 @@ class Trainer:
     ):
         self.model.train()
         for epoch in range(epochs):
-            self.summary_writer.add_scalar("epoch", epoch, self.step)
             for _, batch, labels, _ in self.train_loader:
                 self.train_batch(batch, labels, log_frequency)
             if (epoch + 1) % val_frequency == 0:
@@ -172,6 +173,7 @@ class Trainer:
                 self.model.train()
             if save and epoch == epochs - 1:
                 self.save_final_preds()
+            self.summary_writer.add_scalar("epoch", epoch + 1, self.step)
 
 
 def parse_arguments() -> argparse.Namespace:
