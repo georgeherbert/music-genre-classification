@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 import torch.backends.cudnn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
@@ -18,39 +19,24 @@ torch.backends.cudnn.benchmark = True
 DEVICE = torch.device("cuda")
 
 
-class ShallowCNN(torch.nn.Module):
+class ShallowCNN(nn.Module):
     def __init__(self, batch_norm: bool = False):
         super().__init__()
         self.batch_norm = batch_norm
-        self.conv_left = torch.nn.Conv2d(
-            in_channels=1,
-            out_channels=16,
-            kernel_size=(10, 23),
-            padding="same"
-        )
-        self.bn_conv_left = torch.nn.BatchNorm2d(16)
-        self.pool_left = torch.nn.MaxPool2d(
-            kernel_size=(1, 20),
-            stride=(1, 20)
-        )
 
-        self.conv_right = torch.nn.Conv2d(
-            in_channels=1,
-            out_channels=16,
-            kernel_size=(21, 20),
-            padding="same"
-        )
-        self.bn_conv_right = torch.nn.BatchNorm2d(16)
-        self.pool_right = torch.nn.MaxPool2d(
-            kernel_size=(20, 1),
-            stride=(20, 1)
-        )
+        self.conv_left = nn.Conv2d(1, 16, (10, 23), 1, "same")
+        self.bn_conv_left = nn.BatchNorm2d(16)
+        self.pool_left = nn.MaxPool2d((1, 20), (1, 20))
 
-        self.fc_1 = torch.nn.Linear(10240, 200)
-        self.dropout = torch.nn.Dropout(0.1)
-        self.fc_2 = torch.nn.Linear(200, 10)
+        self.conv_right = nn.Conv2d(1, 16, (21, 20), 1, "same")
+        self.bn_conv_right = nn.BatchNorm2d(16)
+        self.pool_right = nn.MaxPool2d((20, 1), (20, 1))
 
-        self.leaky_relu = torch.nn.LeakyReLU(0.3)
+        self.fc_1 = nn.Linear(10240, 200)
+        self.dropout = nn.Dropout(0.1)
+        self.fc_2 = nn.Linear(200, 10)
+
+        self.leaky_relu = nn.LeakyReLU(0.3)
 
         self.initialise_layer(self.conv_left)
         self.initialise_layer(self.conv_right)
@@ -68,13 +54,7 @@ class ShallowCNN(torch.nn.Module):
             x_right = self.bn_conv_right(x_right)
         x_right = self.leaky_relu(x_right)
         x_right = self.pool_right(x_right)
-        x = torch.cat(
-            [
-                torch.flatten(x_left, start_dim=1),
-                torch.flatten(x_right, start_dim=1)
-            ],
-            dim=1
-        )
+        x = torch.cat([torch.flatten(x_left, 1), torch.flatten(x_right, 1)], 1)
         x = self.fc_1(x)
         x = self.leaky_relu(x)
         x = self.dropout(x)
@@ -84,22 +64,19 @@ class ShallowCNN(torch.nn.Module):
     @staticmethod
     def initialise_layer(layer):
         if hasattr(layer, "bias"):
-            torch.nn.init.zeros_(layer.bias)
+            nn.init.zeros_(layer.bias)
         if hasattr(layer, "weight"):
-            torch.nn.init.kaiming_uniform_(
-                layer.weight,
-                a=0.3
-            )
+            nn.init.kaiming_uniform_(layer.weight, 0.3)
 
 
 class Trainer:
     def __init__(
             self,
             device: torch.device,
-            model: torch.nn.Module,
+            model: nn.Module,
             train_loader: DataLoader,
             val_loader: DataLoader,
-            criterion: torch.nn.Module,
+            criterion: nn.Module,
             optimiser: torch.optim.Optimizer,
             summary_writer: SummaryWriter
     ):
@@ -117,28 +94,15 @@ class Trainer:
         weights = torch.cat([p.view(-1) for n, p in params if ".weight" in n])
         return weights.abs().sum() * penalty
 
-    def calc_loss(
-        self,
-        logits: torch.Tensor,
-        labels: torch.Tensor
-    ) -> torch.Tensor:
+    def calc_loss(self, logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
         return self.criterion(logits, labels) + self.l1_penalty()
 
-    def log_curves(
-        self,
-        type: str,
-        loss: float,
-        accuracy: float
-    ):
+    def log_curves(self, type: str, loss: float, accuracy: float):
         self.summary_writer.add_scalars(
-            "loss",
-            {type: loss},
-            self.step
+            "loss", {type: loss}, self.step
         )
         self.summary_writer.add_scalars(
-            "accuracy",
-            {type: accuracy},
-            self.step
+            "accuracy", {type: accuracy}, self.step
         )
 
     def validate(self):
@@ -280,7 +244,7 @@ def main():
         batch_size=3750,
         pin_memory=True
     )
-    criterion = torch.nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss()
     optimiser = torch.optim.Adam(
         params=model.parameters(),
         lr=0.00005,
