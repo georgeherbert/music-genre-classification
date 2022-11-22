@@ -118,8 +118,11 @@ class Trainer:
                 total_loss += loss.item()
                 results = torch.cat((results, logits.cpu()), 0)
         mean_loss = total_loss / len(self.val_loader)
-        accuracy = evaluate(results, "data/val.pkl")
-        self.log_curves("val", mean_loss, float(accuracy))
+        raw_accuracy, max_prob_accuracy = evaluate(results)
+        self.log_curves("val", mean_loss, float(raw_accuracy))
+        self.summary_writer.add_scalars(
+            "accuracy", {"val_max_prob": max_prob_accuracy}, self.step
+        )
 
     def train_batch(
         self, batch: torch.Tensor,
