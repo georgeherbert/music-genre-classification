@@ -4,6 +4,7 @@
 % \usepackage{algorithmic}
 \usepackage{graphicx}
 \usepackage{multirow}
+\usepackage{booktabs}
 % \usepackage{textcomp}
 % \usepackage{xcolor}
 \graphicspath{{./images/}}
@@ -117,16 +118,16 @@ Alternatively, it may due to the fact that the $Keras$ library used by Schindler
 \begin{table}[htbp]
     \caption{Shallow CNN Accuracy on the Test Set}
     \begin{center}
-    \begin{tabular}{|c|c|c|}
-    \hline
+    \begin{tabular}{l c c}
+    \toprule
     \textbf{Model}&\textbf{Epoch}&\textbf{Accuracy}\\
-    \hline
-    \multirow{ 2}{*}{My implementation} & 100 & 63.2\\
+    \midrule
+    \multirow{ 2}{*}{My CNN} & 100 & 63.2\\
     & 200 & 52.1\\
-    \hline
+    \midrule
     \multirow{ 2}{*}{Schindler et al.} & 100 & 66.56\\
     & 200 & 67.49\\
-    \hline
+    \bottomrule
     \end{tabular}
     \label{shallow_results}
     \end{center}
@@ -169,17 +170,36 @@ An analysis of the spectrograms from these genres reveals potential reasons for 
 
 \section{Improvements}
 
-The training curves in Figure \ref{accuracy_curves} and Figure \ref{loss_curves} highlighted that the network was severely overfitting.
-To improve the performance of my network, I experimented with data augmentation: a common technique employed to reduce overfitting that involves the creation of new synthetic data.
-In the context of audio data, augmentation can take several forms; Schindler et al. experimented with two forms of augmentation: pitch shifting and time stretching.
-I opted to implement pitch shifting: a technique in which the original pitch of an audio sampled is raised or lowered, whilst the tempo is unchanged.
-I implemented the same shifts as Schindler et al.: raising and lowering the pitch by 2 and 5 semitones.
-I applied each of these four shifts to three samples randomly selected from each audio file.
+Thus far, I have computed the `raw' accuracy of my model, by individually predicting the genre for each sample in my dataset.
+However, this is not the optimal method, since it ignores all file dependencies; each WAV audio track within the dataset is represented by fifteen 0.93 second samples.
+Schindler et al. recognised this, and achieved a substantial improvement in accuracy by introducing two new methods of classification: maximum probability and majority vote---both of which take file dependencies into account.
+To classify an inputted audio file by maximum probability, the probabilities output by the final softmax layer for each segment are first summed; then, the predicted class is determined by the largest value amongst the summed probabilities.
+To classify an inputted audio file by majority vote, a class is determined for each segment by the largest value output by the final layer; then, a majority vote is conducted over the predicted classes for each of the segments.
 
-Unlike Schindler et al., training my network on the augmented dataset yielded a small improvement in accuracy.
-Furthermore, the training curves confirmed that the degree to which my network was overfitting was significantly reduced.
+Table \ref{improved_results} displays the accuracy achieved using each of the raw, maximum probability and majority vote approaches.
+The relative improvement to accuracy provided by maximum probability classification and majority vote classification are consistent with the findings of Schindler et al.
 
 To further improve the performance of my network, I implemented batch normalisation following the two convolutional layers in my network.
+
+\begin{table}[htbp]
+    \caption{Improved Accuracy on the Test Set}
+    \begin{center}
+    \begin{tabular}{l c c c c}
+    \toprule
+    &&\multicolumn{3}{c}{\textbf{Accuracy}}\\
+    \cmidrule(lr){3-5}
+    \textbf{Model}&\textbf{Epoch}&\textbf{Raw}&\textbf{Max}&\textbf{Maj}\\
+    \midrule
+    \multirow{ 2}{*}{My CNN} & 100 & 63.2&&\\
+    & 200 & 52.1&&\\
+    \midrule
+    \multirow{ 2}{*}{My CNN + Batch Norm} & 100 & 66.56&&\\
+    & 200 & 67.49&&\\
+    \bottomrule
+    \end{tabular}
+    \label{improved_results}
+    \end{center}
+\end{table}
 
 \section{Conclusion and Future Work}
 
