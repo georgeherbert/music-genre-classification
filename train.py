@@ -7,7 +7,6 @@ from torch.utils.tensorboard.writer import SummaryWriter
 from datetime import datetime
 
 from dataset import GTZAN
-from evaluation import evaluate
 
 import argparse
 
@@ -97,18 +96,32 @@ class Trainer:
     def calc_loss(self, logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
         return self.criterion(logits, labels) + self.l1_penalty(0.0001)
 
-    def log_curves(self, type: str, loss: float, accuracy: float):
-        self.summary_writer.add_scalars(
-            "loss", {type: loss}, self.step
-        )
-        self.summary_writer.add_scalars(
-            "accuracy", {type: accuracy}, self.step
-        )
+    def raw_accuracy(self, logits: torch.Tensor, labels: torch.Tensor) -> float:
+        preds = torch.argmax(logits, 1)
+        accuracy = torch.mean((preds == labels).float()).item() * 100
+        return accuracy
+
+    def max_prob_accuracy(self, logits: torch.Tensor, labels: torch.Tensor) -> float:
+        labels = labels[::15]
+        logits_grouped = logits.reshape(-1, 15, 10)
+        results_summed = torch.sum(logits_grouped, 1)
+        preds = torch.argmax(results_summed, 1)
+        accuracy = torch.mean((preds == labels).float()).item() * 100
+        return accuracy
+
+    def maj_accuracy(self, logits: torch.Tensor, labels: torch.Tensor) -> float:
+        labels = labels[::15]
+        logits_grouped = logits.reshape(-1, 15, 10)
+        preds_grouped = torch.argmax(logits_grouped, 2)
+        preds = torch.mode(preds_grouped).values
+        accuracy = torch.mean((preds == labels).float()).item() * 100
+        return accuracy
 
     def validate(self):
         self.model.eval()
-        results = torch.Tensor()
         total_loss = 0
+        logits_all = torch.Tensor()
+        labels_all = torch.Tensor()
         with torch.no_grad():
             for _, batch, labels, _ in self.val_loader:
                 batch = batch.to(self.device)
@@ -116,12 +129,20 @@ class Trainer:
                 logits = self.model(batch)
                 loss = self.calc_loss(logits, labels)
                 total_loss += loss.item()
-                results = torch.cat((results, logits.cpu()), 0)
+                logits_all = torch.cat((logits_all, logits.cpu()))
+                labels_all = torch.cat([labels_all, labels.cpu()])
         mean_loss = total_loss / len(self.val_loader)
-        raw_accuracy, max_prob_accuracy = evaluate(results)
-        self.log_curves("val", mean_loss, float(raw_accuracy))
+        raw_accuracy = self.raw_accuracy(logits_all, labels_all)
+        max_prob_accuracy = self.max_prob_accuracy(logits_all, labels_all)
+        maj_accuracy = self.maj_accuracy(logits_all, labels_all)
         self.summary_writer.add_scalars(
-            "accuracy", {"val_max_prob": max_prob_accuracy}, self.step
+            "accuracy", {"raw_val": raw_accuracy}, self.step)
+        self.summary_writer.add_scalars(
+            "accuracy", {"max_prob_val": max_prob_accuracy}, self.step)
+        self.summary_writer.add_scalars(
+            "accuracy", {"maj_val": maj_accuracy}, self.step)
+        self.summary_writer.add_scalars(
+            "loss", {"val": mean_loss}, self.step
         )
 
     def train_batch(
@@ -140,7 +161,10 @@ class Trainer:
             with torch.no_grad():
                 preds = logits.argmax(-1)
                 accuracy = (labels == preds).sum().item() / len(labels) * 100
-            self.log_curves("train", loss.item(), accuracy)
+            self.summary_writer.add_scalars(
+                "loss", {"train": loss}, self.step)
+            self.summary_writer.add_scalars(
+                "accuracy", {"train": accuracy}, self.step)
         self.step += 1
 
     def save_final_preds(self):
@@ -179,7 +203,7 @@ class Trainer:
             self.summary_writer.add_scalar("epoch", epoch + 1, self.step)
 
 
-def parse_arguments() -> argparse.Namespace:
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-e",
@@ -216,12 +240,6 @@ def parse_arguments() -> argparse.Namespace:
         help="Batch normalisation after convolutional layers"
     )
     parser.add_argument(
-        "-a",
-        "--augment",
-        action='store_true',
-        help="Train with the augmented dataset"
-    )
-    parser.add_argument(
         "-s",
         "--save",
         action='store_true',
@@ -230,15 +248,18 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def log_dir(args):
+    log_dir = f"logs/{datetime.now().strftime('%d-%H%M%S')}"
+    log_dir += f"_bs{args.batch_size}"
+    log_dir += "_bn" if args.batch_norm else ""
+    return log_dir
+
+
 def main():
-    args = parse_arguments()
-    model = ShallowCNN(
-        batch_norm=args.batch_norm
-    )
+    args = parse_args()
+    model = ShallowCNN(batch_norm=args.batch_norm)
     train_loader = DataLoader(
-        dataset=GTZAN(
-            f"data/{'augment' if args.augment else 'train'}.pkl"
-        ),
+        dataset=GTZAN("data/train.pkl"),
         shuffle=True,
         batch_size=args.batch_size,
         pin_memory=True
@@ -249,28 +270,19 @@ def main():
         batch_size=3750,
         pin_memory=True
     )
-    criterion = nn.CrossEntropyLoss()
     optimiser = torch.optim.Adam(
         params=model.parameters(),
         lr=0.00005,
         betas=(0.9, 0.999),
         eps=1e-8
     )
-    log_dir = f"logs/{datetime.now().strftime('%d-%H%M%S')}_bs{args.batch_size}"
-    if args.batch_norm:
-        log_dir += "_bn"
-    if args.augment:
-        log_dir += "_a"
-    summary_writer = SummaryWriter(
-        log_dir=log_dir,
-        flush_secs=5
-    )
+    summary_writer = SummaryWriter(log_dir(args), flush_secs=5)
     trainer = Trainer(
         device=DEVICE,
         model=model,
         train_loader=train_loader,
         val_loader=val_loader,
-        criterion=criterion,
+        criterion=nn.CrossEntropyLoss(),
         optimiser=optimiser,
         summary_writer=summary_writer
     )
