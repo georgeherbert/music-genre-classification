@@ -45,6 +45,8 @@ In one such paper, Schindler et al. \cite{SchindlerLidyRauber} investigated the 
 Schindler et al. published their work on genre classification in 2016; since then, more work has been published in this area.
 
 
+
+
 \section{Dataset}
 
 I used the the GTZAN dataset compiled by Tzanetakis and Cook \cite{TzanetakisCook} to train and validate my models; it contains 1000 WAV audio tracks, each 30 seconds in length.
@@ -56,15 +58,21 @@ Chunks from 75\% of the WAV audio tracks for each genre were randomly selected t
 
 \section{CNN Architecture (Schindler et al.)}
 
-I recreated the shallow CNN architecture outlined by Schindler et al.
-Log-mel spectrograms of shape $80\times80$ are provided as input to the network.
+\begin{figure}[htbp]
+    \centerline{\includegraphics[width=\columnwidth]{architecture.jpg}}
+    \caption{Abstract representation of the shallow CNN architecture}
+    \label{architecture}
+\end{figure}
 
+I recreated the shallow CNN architecture outlined by Schindler et al.
+Figure \ref{architecture} displays an abstract representation of the architecture.
+Log-mel spectrograms of shape $80\times80$ are provided as input to the network.
 Since the dimensions of the spectrograms correspond to time and frequency, Schindler et al. implemented a parallel architecture.
-The left pipeline aims to capture frequency relations.
+The top pipeline aims to capture frequency relations.
 It first contains a convolutional layer (with padding) with 16 kernels of shape $10\times23$ to produce 16 square feature maps of shape $80\times80$.
 These are then downsampled using a $1\times20$ max pooling layer to produce 16 vertical rectangular feature maps of shape $80\times4$.
 The kernel and max pooling shapes were specifically selected to capture spectral characteristics.
-Conversely, the right pipeline aims to capture temporal relations.
+Conversely, the bottom pipeline aims to capture temporal relations.
 It too initially contains a convolutional layer (with padding) with 16 kernels, but of approximately square shape $21\times20$ to produce 16 square feature maps of shape $80\times80$.
 These are then downsampled using a $20\times1$ max pooling layer to produce 16 horizontal rectangular feature maps of shape $4\times80$, specifically to capture temporal changes in intensity.
 
