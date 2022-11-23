@@ -36,11 +36,14 @@ music information retrieval, convolutional neural networks
 
 Music genre classification---categorising a music sample into one or more genres---is a fundamental problem in music information retrieval.
 Early approaches to genre classification, such as that by Tzanetakis and Cook \cite{TzanetakisCook}, focused on training statistical classifiers using features such as timbral texture, rhythmic content and pitch content.
-More recently, convolutional neural networks (CNNs) have been widely investigated in the context of genre classification, following their successes in the field of computer vision.
 
-In one such paper, Schindler et al. \cite{SchindlerLidyRauber} investigated the performance of two different CNN architectures; in conjunction, they examined how data augmentation applied to four different datasets impacted the performance of both architectures.
+More recently, convolutional neural networks (CNNs) have been widely investigated in the context of genre classification, following their successes in the field of computer vision.
+In one such paper, Schindler et al. \cite{SchindlerLidyRauber} investigated the performance of two different CNN architectures: a shallow architecture and a deep architecture.
 
 \section{Related Work}
+
+Schindler et al. published their work on genre classification in 2016; since then, more work has been published in this area.
+
 
 \section{Dataset}
 
@@ -209,10 +212,14 @@ When applied to the output from a convolutional layer, this is implemented as fo
 \[
 \hat{x}_{i,c,x,y}=\gamma_c\frac{x_{i,c,x,y}-\mu_c}{\sqrt{\sigma_c^2+\epsilon}}+\beta_c
 \]
-where $x$ is the output from the previous layer; $\hat{x}$ is the input to the subsequent layer; and $i$, $c$, $x$ and $y$ are the batch, channel, width and height indices;
+where $x$ is the output from the previous layer; $\hat{x}$ is the input to the subsequent layer; $i$, $c$, $x$ and $y$ are the batch, channel, width and height indices; $\gamma_c$ and $\beta_c$ are parameters learned during the optimisation process to restore the representative power of the network; and $\gamma$ is a small constant for numerical stability.
 
-Batch normalisation has strong empirical performance, but there is some disagreement as to the theory behind its effectiveness.
-
+I implemented a two-dimensional batch normalisation layer following each of the two convolutional layers in my network using $PyTorch$'s \texttt{torch.nn.BatchNorm2d} class.
+Table \ref{improved_results} displays the accuracy of my network with the inclusion of the batch normalisation layers.
+Not only did batch normalisation provide a reasonabe improvement in accuracy after 200 epochs---especially in the case of raw accuracy---but, it also reduced the number of epochs required for divergence.
+Unlike in the case of the CNN trained without batch normalisation, the difference in accuracy between 100 and 200 epochs is minimal.
+The precise reasons for the improved performance are unclear: Batch normalisation has strong empirical performance, but there is some disagreement as to the theory behind its effectiveness.
+Santukar et al. \cite{SanturkarEtAl} proposed that batch normalisation significantly smoothes the optimisation landscape, which induces a more predictive and stable behaviour of the gradients, thus facilitating faster training.
 
 \section{Conclusion and Future Work}
 
