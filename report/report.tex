@@ -184,20 +184,22 @@ Despite using L1 regularisation and dropout, the model had memorised almost ever
 
 \section{Qualitative Results}
 
-Figure \ref{spectrograms} displays three log-mel spectrograms produced from 0.93 second samples from audio tracks in the GTZAN dataset.
-An analysis of these spectrograms, as well as listening to the audio files they were derived from, yields some clues as to the discrepencies in per-class accuracy of the network.
+Deep neural networks are frequently described as black-box models, because it can be exceptionally difficult to reason about the features they extract to produce their outputs.
+% I analysed log-mel spectrograms classified by my network, as well as their respective audio files, to reason about the areas in which it succeeds and fails.
+Figure \ref{spectrograms} displays three log-mel spectrograms produced from samples from the audio tracks in the GTZAN dataset.
+An analysis of these spectrograms, as well as listening to the audio files from which they were derived, yields some clues as to the discrepencies in per-class accuracy that the network achieved.
 
 \begin{figure}[htbp]
     \centering
     \begin{subfigure}[b]{0.32\columnwidth}
         \centerline{\includegraphics[width=\columnwidth]{spec_correct.png}}
-        \caption{Correct}
+        \caption{classical.00070}
         \label{spec_correct}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.32\columnwidth}
         \centerline{\includegraphics[width=\columnwidth]{spec_incorrect_1.png}}
-        \caption{Correct}
+        \caption{jazz.00003}
         \label{spec_incorrect_1}
     \end{subfigure}
     \hfill
@@ -210,15 +212,22 @@ An analysis of these spectrograms, as well as listening to the audio files they 
     \label{spectrograms}
 \end{figure}
 
-The network correctly predicted the class for all spectrograms produced from \texttt{classical.000067.wav}.
-This audio file is very characteristic of classical music, with long notes played from violins.
-Figure \ref{spec_correct} displays a spectrogram produced from this audio file.
+The spectrogram in Figure \ref{spec_correct} was classified correctly, and as were the other 14 log-mel spectrograms extracted from `classical.00070.wav'.
+The audio within the file is very characteristic of classical music, with long notes played from a violin.
 Harmonics produced by the violin are represented by the long parallel lines that stretch across the entirety of the file.
-One can see how a neural network could learn that features such as these indicate classical music.
+An analysis of other spectrograms produced from classical music appear very similar.
+One can see how a neural network could relatively easily learn that extended parallel lines such as these indicate classical music.
 
-Conversely, the network incorrectly predicetd the class for all spectrograms produced from \texttt{.wav}.
-A spectrogram produced from a segment of the audio file is shown in Figure \ref{spec_incorrect_1}.
-Unlike in the previous example, the spectrogram appears to have significantly less structure, which is likely why the network struggled to identify its genre.
+Conversely, the network incorrectly predicetd the class for all spectrograms produced from `jazz.00003.wav'.
+A spectrogram produced from a segment of the audio file is shown in Figure \ref{spec_incorrect_1}, in which there are long parallel lines characteristic of classical music.
+In fact, nine of the spectrograms derived from the file were classified as being classical.
+This lends credence to the idea that the network classifies spectrograms with long parallel lines as being classical music.
+
+The spectrogram in Figure `pop.00064.wav' was also incorrectly classifed, as were 13 of the other spectrograms derived from the same file.
+In fact, 11 of the spectrograms were incorrectly classified as being disco music.
+This arguably highlights a fundamental problem with using genre as a way of classifying music: its subjective nature.
+Genres are often not defined objectively.
+It is highly unlikely even a human would agree with all of the genre classiciations in the dataset, which makes it understandable that a machine too would incorrectly classify so many samples.
 
 \section{Improvements}
 
