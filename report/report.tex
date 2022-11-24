@@ -32,7 +32,7 @@ While in the latter part, I evaluate the results my implementation achieved, and
 \end{abstract}
 
 \begin{IEEEkeywords}
-music information retrieval, convolutional neural networks
+Music Information Retrieval, Music Genre Classification, Convolutional Neural Networks
 \end{IEEEkeywords}
 
 \section{Introduction}
@@ -45,16 +45,19 @@ In one such paper, Schindler et al. \cite{SchindlerLidyRauber} investigated the 
 
 \section{Related Work}
 
-Schindler et al. published their work on genre classification in 2016; since then, more work has been published in this area.
+Schindler et al. published their work on genre classification in 2016; more recent work has since been published in this area.
 
-
-
+Large datasets are frequently required to train powerful deep neural networks.
+However, in the MIR domain, there is often  a lack of large training datasets.
+Hung et al. \cite{HungYangChenLerch} published some very recent work that successfully dealt with this problem.
+They introduced a novel method called input-dependent neural model reprogramming---a transfer learning training scheme---that leverages pre-trained models for music classification.
+They successfully applied this method to reprogram two published models that were pre-trained on speech and audio data.
 
 \section{Dataset}
 
 I used the the GTZAN dataset compiled by Tzanetakis and Cook \cite{TzanetakisCook} to train and validate my models; it contains 1000 WAV audio tracks, each 30 seconds in length.
 There are 100 tracks for each of the 10 genres in the dataset: blues, classical, country, disco, hip-hop, jazz, metal, pop, reggae and rock.
-The CNNs were trained on chunks of approximately 0.93 seconds that were randomly selected from each audio track.
+The CNNs were trained on 0.93 second chunks that were randomly selected from each audio track.
 
 To produce a training and test set, a stratified split was deemed suitable to prevent imbalance.
 Chunks from 75\% of the WAV audio tracks for each genre were randomly selected to make up the training set, with chunks from the other 25\% of audio tracks for each genre making up the test set.
@@ -69,7 +72,7 @@ Chunks from 75\% of the WAV audio tracks for each genre were randomly selected t
 
 I recreated the shallow CNN architecture outlined by Schindler et al.; Figure \ref{architecture} displays an abstract representation of the architecture.
 Log-mel spectrograms of shape $80\times80$ are provided as input to the network.
-Since the dimensions of the spectrograms correspond to time and frequency, Schindler et al. implemented a parallel architecture.
+Since the dimensions of the spectrograms correspond to time and frequency, Schindler et al. proposed a parallel architecture.
 
 The top pipeline aims to capture frequency relations.
 It first contains a convolutional layer (with padding) with 16 kernels of shape $10\times23$ to produce 16 square feature maps of shape $80\times80$.
@@ -77,20 +80,21 @@ These are then downsampled using a $1\times20$ max pooling layer to produce 16 v
 The kernel and max pooling shapes were specifically selected to capture spectral characteristics.
 Conversely, the bottom pipeline aims to capture temporal relations.
 It too initially contains a convolutional layer (with padding) with 16 kernels, but of approximately square shape $21\times20$ to produce 16 square feature maps of shape $80\times80$.
-These are then downsampled using a $20\times1$ max pooling layer to produce 16 horizontal rectangular feature maps of shape $4\times80$, specifically to capture temporal changes in intensity.
+These too are then downsampled using a $20\times1$ max pooling layer to produce 16 horizontal rectangular feature maps of shape $4\times80$, specifically to capture temporal changes in intensity.
 
 The 16 feature maps from each piepline are flattened and concatenated to a shape of $1\times10240$, which is mapped to a 200 neuron fully connected layer.
-These final 200 neurons are then mapped to 10 output neurons, which represent the probabilities of each of the ten genres for a given input---10\% dropout is utilised at this layer to prevent overfitting.
+These final 200 neurons are then mapped to 10 output neurons---10\% dropout is utilised at this layer to prevent overfitting.
+The softmax function is applied to these 10 output neurons to produce a pseudo-probability distribution to represent the probability that a given input belongs to each of the ten genres.
 
 With the exception of the final layer, each convolutional and fully connected layer is passed through the Leaky ReLU activation function.
-The final layer uses the softmax activation function.
 
 \section{Implementation Details}
 
+I constructed and trained the shallow CNN using Python and the \textit{PyTorch} \cite{PyTorch} machine learning framework.
+
 \subsection{CNN Details}
 
-I constructed the shallow CNN using Python and the \textit{PyTorch} \cite{PyTorch} machine learning framework.
-To do so, I created a \texttt{ShallowCNN} class that inherits from $PyTorch$'s \texttt{nn.Modules} class.
+To implement the CNN I created a \texttt{ShallowCNN} class that inherits from $PyTorch$'s \texttt{nn.Modules} class.
 The class contains a \texttt{forward} method that conducts a forward path for an inputted batch.
 
 \subsection{Training Details}
@@ -108,7 +112,7 @@ I trained the network on a BlueCrystal Phase 4 GPU node, which contains two NVID
 Weight initialisation is an important design choice, since it determines the starting point of the optimisation procedure.
 Schindler et al. did not specify the procedure they used.
 However, modern weight initialisation heuristics exist that depend on the activation function.
-The shallow CNN architecture uses LeakyReLU, so I implemented He initialisation using \textit{PyTorch}'s \texttt{nn.init.kaiming\_normal} procedure.
+In this respect, I implemented He initialisation using \textit{PyTorch}'s \texttt{nn.init.kaiming\_normal} procedure due to the Leaky ReLU activation function being used throughout the network.
 
 \subsection{Batch size}
 
@@ -116,7 +120,7 @@ Batch size is a fundamental hyperparameter to consider when training deep networ
 Smaller batches give rise to longer epochs and introduce extra noise to the weight updates; however, this noise can prove beneficial if the error manifold has many deep local optima.
 Conversely, larger batches give rise to shorter epochs, but networks trained with large batches often struggle to generalise.
 Schindler et al. did not identify the batch size they used for training.
-Thus, I experimented with multiple batch sizes, and found that my results were most similar with a batch size of 128.
+Thus, I experimented with multiple batch sizes, and found that my results were most similar with a batch size of 64.
 
 \section{Replicating Quantitative Results}
 
@@ -254,8 +258,8 @@ The relative improvement to accuracy provided by maximum probability classificat
     \multirow{ 2}{*}{My CNN} & 100 & 62.96 & 75.80 & 73.53 \\
     & 200 & 64.01 & 77.60 & 76.60 \\
     \midrule
-    \multirow{ 2}{*}{My CNN + Batch Norm} & 100 & 66.30 & 76.30 & 76.56 \\
-    & 200 & \textbf{66.55} & \textbf{77.68} & \textbf{76.64} \\
+    \multirow{ 2}{*}{My CNN + Batch Norm} & 100 & 66.30 & 77.30 & 77.56 \\
+    & 200 & \textbf{66.55} & \textbf{78.68} & \textbf{77.64} \\
     \bottomrule
     \end{tabular}
     \label{improved_results}
@@ -274,14 +278,25 @@ where $x$ is the output from the previous layer; $\hat{x}$ is the input to the s
 
 I implemented a two-dimensional batch normalisation layer following each of the two convolutional layers in my network using $PyTorch$'s \texttt{nn.BatchNorm2d} class.
 Table \ref{improved_results} displays the accuracy of my network with the inclusion of the batch normalisation layers.
-Not only did batch normalisation provide a reasonabe improvement in accuracy after 200 epochs---especially in the case of raw accuracy---but, it also reduced the number of epochs required for divergence.
-Unlike in the case of the CNN trained without batch normalisation, the difference in accuracy between 100 and 200 epochs is minimal.
+Not only did batch normalisation provide a reasonabe improvement in accuracy after 200 epochs---especially in the case of raw accuracy---but, it also reduced the number of epochs required for divergence to a small degree.
+Unlike in the case of the CNN trained without batch normalisation, the difference in accuracy between 100 and 200 epochs is very minimal.
 The precise reasons for the improved performance are unclear: Batch normalisation has strong empirical performance, but there is some disagreement as to the theory behind its effectiveness.
 Santukar et al. \cite{SanturkarEtAl} proposed that batch normalisation significantly smoothes the optimisation landscape, which induces a more predictive and stable behaviour of the gradients, thus facilitating faster training.
+
+Figure \ref{accuracy_curves_improved} displays the raw accuracy the network achieved on the training and test set during the training process.
+It is evident that the degree to which the network is overfitting has been reduced.
+This is because batch normalisation also works as a regulariser, due to the fact that the mean and standard deviation is computed from each mini-batch, rather than the entire dataset.
+
+\begin{figure}[htbp]
+    \centerline{\includegraphics[width=\columnwidth]{accuracy_improved.png}}
+    \caption{Accuracy curves}
+    \label{accuracy_curves_improved}
+\end{figure}
 
 \section{Conclusion and Future Work}
 
 In this paper I have successfully reimplemented the shallow CNN architecture as described by Schindler et al.
+I also proposed an extension to the architecture, with the inclusion of two batch normalisation layers.
 
 Problems with the dataset. Is the dataset representative?
 
