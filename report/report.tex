@@ -5,6 +5,8 @@
 \usepackage{graphicx}
 \usepackage{multirow}
 \usepackage{booktabs}
+\usepackage{caption}
+\usepackage{subcaption}
 % \usepackage{textcomp}
 % \usepackage{xcolor}
 \graphicspath{{./images/}}
@@ -64,8 +66,7 @@ Chunks from 75\% of the WAV audio tracks for each genre were randomly selected t
     \label{architecture}
 \end{figure}
 
-I recreated the shallow CNN architecture outlined by Schindler et al.
-Figure \ref{architecture} displays an abstract representation of the architecture.
+I recreated the shallow CNN architecture outlined by Schindler et al.; Figure \ref{architecture} displays an abstract representation of the architecture.
 Log-mel spectrograms of shape $80\times80$ are provided as input to the network.
 Since the dimensions of the spectrograms correspond to time and frequency, Schindler et al. implemented a parallel architecture.
 The top pipeline aims to capture frequency relations.
@@ -179,6 +180,29 @@ While conversely, it only managed to accurately classify approximately 40\% of s
 
 An analysis of the spectrograms from these genres reveals potential reasons for these discrepencies in per-class accuracy.
 
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.32\columnwidth}
+        \centerline{\includegraphics[width=\columnwidth]{spec_correct.png}}
+        \caption{Correct}
+        \label{spec_correct}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.32\columnwidth}
+        \centerline{\includegraphics[width=\columnwidth]{spec_incorrect_1.png}}
+        \caption{Correct}
+        \label{spec_incorrect_1}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.32\columnwidth}
+        \centerline{\includegraphics[width=\columnwidth]{spec_incorrect_2.png}}
+        \caption{Correct}
+        \label{spec_incorrect_2}
+    \end{subfigure}
+    \caption{Mel Spectrograms}
+    \label{Spectrograms}
+\end{figure}
+
 \section{Improvements}
 
 \subsection{Maximum Probability and Majority Voting}
@@ -231,6 +255,7 @@ Santukar et al. \cite{SanturkarEtAl} proposed that batch normalisation significa
 
 \section{Conclusion and Future Work}
 
+In this paper I have successfully reimplemented the shallow CNN architecture as described by Schindler et al.
 
 
 \bibliographystyle{IEEEtran}
