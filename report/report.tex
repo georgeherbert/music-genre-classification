@@ -26,8 +26,9 @@ cj19328@bristol.ac.uk}
 \maketitle
 
 \begin{abstract}
-In this paper I investigate the shallow convolutional neural network architecture proposed by Schindler et al. \cite{SchindlerLidyRauber} for the task of music genre categorisation.
-In the first part of this paper, I attempt to replicate the results achieved by Schindler et al., while in the latter part, I extend on their work by 
+In this paper I implement and evaluate the shallow convolutional neural network architecture proposed by Schindler et al. \cite{SchindlerLidyRauber} for the task of music genre categorisation.
+In the first part of this paper, I describe the process I undertook to implement the network.
+While in the latter part, I evaluate the results my implementation achieved, and extend on their work by implementing batch normalisation.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -69,6 +70,7 @@ Chunks from 75\% of the WAV audio tracks for each genre were randomly selected t
 I recreated the shallow CNN architecture outlined by Schindler et al.; Figure \ref{architecture} displays an abstract representation of the architecture.
 Log-mel spectrograms of shape $80\times80$ are provided as input to the network.
 Since the dimensions of the spectrograms correspond to time and frequency, Schindler et al. implemented a parallel architecture.
+
 The top pipeline aims to capture frequency relations.
 It first contains a convolutional layer (with padding) with 16 kernels of shape $10\times23$ to produce 16 square feature maps of shape $80\times80$.
 These are then downsampled using a $1\times20$ max pooling layer to produce 16 vertical rectangular feature maps of shape $80\times4$.
@@ -77,33 +79,36 @@ Conversely, the bottom pipeline aims to capture temporal relations.
 It too initially contains a convolutional layer (with padding) with 16 kernels, but of approximately square shape $21\times20$ to produce 16 square feature maps of shape $80\times80$.
 These are then downsampled using a $20\times1$ max pooling layer to produce 16 horizontal rectangular feature maps of shape $4\times80$, specifically to capture temporal changes in intensity.
 
-The 16 feature maps from each piepline are flattened and concatenated to a shape of $1\times10240$, which serves as input to a 200 neuron fully connected layer---10\% dropout is utilised at this layer to prevent overfitting.
-These final 200 neurons are then mapped to 10 output neurons, which represent the probabilities of each of the ten genres for a given input.
+The 16 feature maps from each piepline are flattened and concatenated to a shape of $1\times10240$, which is mapped to a 200 neuron fully connected layer.
+These final 200 neurons are then mapped to 10 output neurons, which represent the probabilities of each of the ten genres for a given input---10\% dropout is utilised at this layer to prevent overfitting.
 
 With the exception of the final layer, each convolutional and fully connected layer is passed through the Leaky ReLU activation function.
 The final layer uses the softmax activation function.
 
 \section{Implementation Details}
 
-I constructed my implementation using Python and the \textit{PyTorch} \cite{PyTorch} machine learning framework.
-I trained my network on a BlueCrystal Phase 4 GPU node, which contains two NVIDIA Tesla P100 GPUs \cite{bc4}.
+\subsection{CNN Details}
 
-\subsection{Optimiser}
+I constructed the shallow CNN using Python and the \textit{PyTorch} \cite{PyTorch} machine learning framework.
+To do so, I created a \texttt{ShallowCNN} class that inherits from $PyTorch$'s \texttt{nn.Modules} class.
+The class contains a \texttt{forward} method that conducts a forward path for an inputted batch.
 
-I optimised my network using the Adam optimisation algorithm \cite{KingmaBa}, as implemented by the \texttt{torch.optim.Adam} class, with $\beta_1=0.9$, $\beta_2=0.999$, $\epsilon=1\times10^{-8}$ and a learning rate of $5\times10^{-5}$.
+\subsection{Training Details}
 
-\subsection{Loss function}
-
-I implemented the cross-entropy loss function using \textit{PyTorch}'s \texttt{torch.nn.CrossEntropyLoss} class to measure the error between the output of the network and the label encoded in a one-hot representation.
-
-Regularisation.
+I implemented a \texttt{Trainer} class to train an instance of the \texttt{ShallowCNN} class.
+Supervised learning algorithms require a cost function to evaluate how well the model fits the training data; to maintain consistency with Schindler et al. I implemented cross-entropy loss.
+To prevent overfitting I used L1 regularisation, with a penalty value of $0.0001$.
+I used the Adam optimiser \cite{KingmaBa}---an extension of stochastic gradient descent---to optimise the cross-entropy loss.
+I implemented Adam using $PyTorch$'s \texttt{optim.Adam} class.
+I used a learning rate of $5\times10^{-5}$ with $\beta_1=0.9$, $\beta_2=0.999$, and $\epsilon=1\times10^{-8}$.
+I trained the network on a BlueCrystal Phase 4 GPU node, which contains two NVIDIA Tesla P100 GPUs \cite{bc4}.
 
 \subsection{Weight initialisation}
 
 Weight initialisation is an important design choice, since it determines the starting point of the optimisation procedure.
 Schindler et al. did not specify the procedure they used.
 However, modern weight initialisation heuristics exist that depend on the activation function.
-The shallow CNN architecture uses LeakyReLU, so I implemented He initialisation using \textit{PyTorch}'s \texttt{torch.nn.init.kaiming\_uniform} procedure.
+The shallow CNN architecture uses LeakyReLU, so I implemented He initialisation using \textit{PyTorch}'s \texttt{nn.init.kaiming\_normal} procedure.
 
 \subsection{Batch size}
 
@@ -113,19 +118,13 @@ Conversely, larger batches give rise to shorter epochs, but networks trained wit
 Schindler et al. did not identify the batch size they used for training.
 Thus, I experimented with multiple batch sizes, and found that my results were most similar with a batch size of 128.
 
-\subsection{Classes}
-
-To implement the CNN I created a \texttt{ShallowCNN} subclass that inherit's from \textit{PyTorch}'s \texttt{torch.nn.Modules} class.
-The class contains a \texttt{forward} method to conduct the forward pass.
-Additionally, I created a \texttt{Trainer} class 
-
 \section{Replicating Quantitative Results}
 
-Table \ref{shallow_results} displays the accuracy my implementation achieved on the test dataset at both 100 and 200 epochs.
-My implementation achieved an accuracy approximately 3\% lower than that of Schindler et al at both 100 and 200 epochs.
-Though I cannot determine the exact reason for this discrepency, I can speculate on several potential reasons.
-Firstly, Schindler et al. may not have specified the full design details of the network necessary for reproducibility.
-Alternatively, it may due to the fact that the $Keras$ library used by Schindler et al. often has different default parameters than the $PyTorch$ library I produced my implementation in.
+Table \ref{shallow_results} displays the mean accuracy my implementation achieved on the test dataset over five runs.
+I have computed the accuracy at both 100 and 200 epochs.
+Much like Schindler et al., I also trained my network for 500 epochs, but there was negligable difference in accuracy.
+This was because the network had already overfit---achieving a test accuracy of near 100\%---so training the network for additional epochs did not improve the network's ability to generalise.
+In this respect, if the network were trained for longer, it is possible the test accuracy would decrease.
 
 \begin{table}[htbp]
     \caption{Shallow CNN Accuracy on the Test Set}
@@ -144,6 +143,17 @@ Alternatively, it may due to the fact that the $Keras$ library used by Schindler
     \label{shallow_results}
     \end{center}
 \end{table}
+
+Notably, the accuracy achieved is approximately 3\% lower than that of Schindler et al.
+Though I cannot determine the exact reason for this discrepency, I can speculate on several potential ones.
+Firstly, Schindler et al. may not have specified the full design details of the network necessary for reproducibility.
+Alternatively, it may due to the fact that the $Keras$ library they used has different default parameters than the $PyTorch$ library I produced my implementation in.
+
+The confusion matrix in Figure \ref{confusion_matrix} displays the performance of my implementation after 200 epochs.
+The model achieved a high accuracy on specific genres, but a low accuracy on others, as evidenced by the confusion matrix in Figure \ref{confusion_matrix}.
+There is a large discrepency in the per-class accuracy of different genres.
+The network achieved a per class accuracy of over 75\% on the blues, classical and metal genres.
+While conversely, it achieved less than a 40\% per-class accuracy on the rock and reggae genres---notably it classified 21\% of rock songs as blues.
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=\columnwidth]{cm.png}}
@@ -174,11 +184,8 @@ Despite using L1 regularisation and dropout, the model had memorised almost ever
 
 \section{Qualitative Results}
 
-The model achieved a high accuracy on specific genres, but a low accuracy on others, as evidenced by the confusion matrix in Figure \ref{confusion_matrix}.
-Notably, it accurately classified samples from the classical and metal genres over 85\% of the time.
-While conversely, it only managed to accurately classify approximately 40\% of samples from the rock and reggae genres.
-
-An analysis of the spectrograms from these genres reveals potential reasons for these discrepencies in per-class accuracy.
+Figure \ref{spectrograms} displays three log-mel spectrograms produced from 0.93 second samples from audio tracks in the GTZAN dataset.
+An analysis of these spectrograms, as well as listening to the audio files they were derived from, yields some clues as to the discrepencies in per-class accuracy of the network.
 
 \begin{figure}[htbp]
     \centering
@@ -200,8 +207,18 @@ An analysis of the spectrograms from these genres reveals potential reasons for 
         \label{spec_incorrect_2}
     \end{subfigure}
     \caption{Mel Spectrograms}
-    \label{Spectrograms}
+    \label{spectrograms}
 \end{figure}
+
+The network correctly predicted the class for all spectrograms produced from \texttt{classical.000067.wav}.
+This audio file is very characteristic of classical music, with long notes played from violins.
+Figure \ref{spec_correct} displays a spectrogram produced from this audio file.
+Harmonics produced by the violin are represented by the long parallel lines that stretch across the entirety of the file.
+One can see how a neural network could learn that features such as these indicate classical music.
+
+Conversely, the network incorrectly predicetd the class for all spectrograms produced from \texttt{.wav}.
+A spectrogram produced from a segment of the audio file is shown in Figure \ref{spec_incorrect_1}.
+Unlike in the previous example, the spectrogram appears to have significantly less structure, which is likely why the network struggled to identify its genre.
 
 \section{Improvements}
 
@@ -246,7 +263,7 @@ When applied to the output from a convolutional layer, this is implemented as fo
 \]
 where $x$ is the output from the previous layer; $\hat{x}$ is the input to the subsequent layer; $i$, $c$, $x$ and $y$ are the batch, channel, width and height indices; $\gamma_c$ and $\beta_c$ are parameters learned during the optimisation process to restore the representative power of the network; and $\gamma$ is a small constant for numerical stability.
 
-I implemented a two-dimensional batch normalisation layer following each of the two convolutional layers in my network using $PyTorch$'s \texttt{torch.nn.BatchNorm2d} class.
+I implemented a two-dimensional batch normalisation layer following each of the two convolutional layers in my network using $PyTorch$'s \texttt{nn.BatchNorm2d} class.
 Table \ref{improved_results} displays the accuracy of my network with the inclusion of the batch normalisation layers.
 Not only did batch normalisation provide a reasonabe improvement in accuracy after 200 epochs---especially in the case of raw accuracy---but, it also reduced the number of epochs required for divergence.
 Unlike in the case of the CNN trained without batch normalisation, the difference in accuracy between 100 and 200 epochs is minimal.
@@ -257,6 +274,7 @@ Santukar et al. \cite{SanturkarEtAl} proposed that batch normalisation significa
 
 In this paper I have successfully reimplemented the shallow CNN architecture as described by Schindler et al.
 
+Problems with the dataset. Is the dataset representative?
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
