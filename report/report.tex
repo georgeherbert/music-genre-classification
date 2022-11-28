@@ -5,7 +5,7 @@
 \usepackage{graphicx}
 \usepackage{multirow}
 \usepackage{booktabs}
-\usepackage{caption}
+\usepackage[font=small]{caption}
 \usepackage{subcaption}
 % \usepackage{textcomp}
 % \usepackage{xcolor}
@@ -66,7 +66,7 @@ Chunks from 75\% of the WAV audio tracks for each genre were randomly selected t
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=\columnwidth]{architecture.jpg}}
-    \caption{Abstract representation of the shallow CNN architecture}
+    \caption{Abstract representation of the shallow CNN architecture as described by Schindler et al.}
     \label{architecture}
 \end{figure}
 
@@ -161,7 +161,10 @@ While conversely, it achieved less than a 40\% per-class accuracy on the rock an
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=\columnwidth]{cm.png}}
-    \caption{Confusion matrix}
+    \caption{
+        Confusion matrix displaying the performance of my network on the test set after 200 epochs for a single training run.    
+        The value in a given cell represents the proportion of samples from the true genre categorised as the predicted genre.
+    }
     \label{confusion_matrix}
 \end{figure}
 
@@ -173,7 +176,9 @@ For the training set, I logged the loss and accuracy of the batch at the end of 
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=\columnwidth]{accuracy.png}}
-    \caption{Accuracy curves}
+    \caption{
+        Plot of accuracy data from the same training run as Figure \ref{confusion_matrix}.
+        The line labelled `training' is the accuracy achieved on the training set, calculated every 100 batches; the line labelled `test' is the accuracy achieved on the test set, calculated every epoch.}
     \label{accuracy_curves}
 \end{figure}
 
@@ -182,7 +187,10 @@ Despite using L1 regularisation and dropout, the model had memorised almost ever
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=\columnwidth]{loss.png}}
-    \caption{Loss curves}
+    \caption{
+        Plot of loss data from the same training run as Figure \ref{confusion_matrix}.
+        The line labelled `training' is the loss achieved on the training set, calculated every 100 batches; the line labelled `test' is the loss achieved on the test set, calculated every epoch.
+    }
     \label{loss_curves}
 \end{figure}
 
@@ -212,7 +220,7 @@ An analysis of these spectrograms, as well as listening to the audio files from 
         \caption{Correct}
         \label{spec_incorrect_2}
     \end{subfigure}
-    \caption{Mel Spectrograms}
+    \caption{Log-mel spectrograms produced from three of the samples in the test dataset.}
     \label{spectrograms}
 \end{figure}
 
@@ -289,7 +297,10 @@ This is because batch normalisation also works as a regulariser, due to the fact
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=\columnwidth]{accuracy_improved.png}}
-    \caption{Accuracy curves}
+    \caption{
+        Plot of accuracy data for my improved network from a single training run.
+        Format is the same as for Figure \ref{accuracy_curves}.
+    }
     \label{accuracy_curves_improved}
 \end{figure}
 
