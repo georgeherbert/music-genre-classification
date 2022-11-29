@@ -93,15 +93,21 @@ class Trainer:
         weights = torch.cat([p.view(-1) for n, p in params if ".weight" in n])
         return weights.abs().sum() * penalty
 
-    def calc_loss(self, logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+    def calc_loss(
+        self, logits: torch.Tensor, labels: torch.Tensor
+    ) -> torch.Tensor:
         return self.criterion(logits, labels) + self.l1_penalty(0.0001)
 
-    def raw_accuracy(self, logits: torch.Tensor, labels: torch.Tensor) -> float:
+    def raw_accuracy(
+        self, logits: torch.Tensor, labels: torch.Tensor
+    ) -> float:
         preds = torch.argmax(logits, 1)
         accuracy = torch.mean((preds == labels).float()).item() * 100
         return accuracy
 
-    def max_prob_accuracy(self, logits: torch.Tensor, labels: torch.Tensor) -> float:
+    def max_prob_accuracy(
+        self, logits: torch.Tensor, labels: torch.Tensor
+    ) -> float:
         labels = labels[::15]
         logits_grouped = logits.reshape(-1, 15, 10)
         results_summed = torch.sum(logits_grouped, 1)
@@ -109,7 +115,9 @@ class Trainer:
         accuracy = torch.mean((preds == labels).float()).item() * 100
         return accuracy
 
-    def maj_accuracy(self, logits: torch.Tensor, labels: torch.Tensor) -> float:
+    def maj_accuracy(
+        self, logits: torch.Tensor, labels: torch.Tensor
+    ) -> float:
         labels = labels[::15]
         logits_grouped = logits.reshape(-1, 15, 10)
         preds_grouped = torch.argmax(logits_grouped, 2)
@@ -131,10 +139,10 @@ class Trainer:
                 total_loss += loss.item()
                 logits_all = torch.cat((logits_all, logits.cpu()))
                 labels_all = torch.cat([labels_all, labels.cpu()])
-        mean_loss = total_loss / len(self.val_loader)
-        raw_accuracy = self.raw_accuracy(logits_all, labels_all)
-        max_prob_accuracy = self.max_prob_accuracy(logits_all, labels_all)
-        maj_accuracy = self.maj_accuracy(logits_all, labels_all)
+            mean_loss = total_loss / len(self.val_loader)
+            raw_accuracy = self.raw_accuracy(logits_all, labels_all)
+            max_prob_accuracy = self.max_prob_accuracy(logits_all, labels_all)
+            maj_accuracy = self.maj_accuracy(logits_all, labels_all)
         self.summary_writer.add_scalars(
             "accuracy", {"raw_val": raw_accuracy}, self.step)
         self.summary_writer.add_scalars(
@@ -170,6 +178,7 @@ class Trainer:
     def save_final_preds(self):
         self.model.eval()
         labels_all = torch.Tensor()
+        logits_all = torch.Tensor()
         preds_all = torch.Tensor()
         names_all = []
         with torch.no_grad():
@@ -179,10 +188,16 @@ class Trainer:
                 logits = self.model(batch)
                 preds = logits.argmax(-1)
                 labels_all = torch.cat((labels_all, labels.cpu()))
+                logits_all = torch.cat((logits_all, logits.cpu()))
                 preds_all = torch.cat((preds_all, preds.cpu()))
                 names_all += names
-            with open("preds.pkl", "wb") as file:
+            logits_grouped = logits_all.reshape(-1, 15, 10)
+            results_summed = torch.sum(logits_grouped, 1)
+            preds_grouped = torch.argmax(results_summed, 1)
+            with open("preds_raw.pkl", "wb") as file:
                 pickle.dump((labels_all, preds_all, names_all), file)
+            with open("preds_max.pkl", "wb") as file:
+                pickle.dump((labels_all[::15], preds_grouped, names_all[::15]), file)
 
     def train(
         self,

@@ -44,15 +44,20 @@ Music Information Retrieval, Music Genre Classification, Convolutional Neural Ne
 
 \section{Introduction}
 
-Music genre classification---categorising a music sample into one or more genres---is a fundamental problem in music information retrieval.
-Early approaches to genre classification, such as that by Tzanetakis and Cook \cite{TzanetakisCook}, focused on training statistical classifiers using features such as timbral texture, rhythmic content and pitch content.
+Explosive growth in the audio streaming industry has fuelled rapid developments in the interdisciplinary science of music information retrieval (MIR).
+Applications of MIR are of evergrowing importance to the music industry to improve tools such as recommender systems, which can offer a competitive advantage.
+Genre classification is one of the most fundamental problems in MIR.
+Early approaches, such as that by Tzanetakis and Cook \cite{TzanetakisCook}, focused on training statistical classifiers using vector summaries of features such as timbral texture, rhythmic content and pitch content; however, these summaries are absent of the important temporal structure in the underlying audio.
+More recently, audio spectrograms---which represent frequency data over time---have been widely investigated and used to train state-of-the-art deep-learning architectures.
 
-More recently, convolutional neural networks (CNNs) have been widely investigated in the context of genre classification, following their successes in the field of computer vision.
-In one such paper, Schindler et al. \cite{SchindlerLidyRauber} investigated the performance of two different CNN architectures: a shallow architecture and a deep architecture.
+To this respect, this paper explores the shallow convolutional neural network (CNN) architecture proposed by Schindler et al. \cite{SchindlerLidyRauber}.
+CNNs have been widely investigated in the context of genre classification following their successes in the field of computer vision.
 
 \section{Related Work}
 
-Schindler et al. published their work on genre classification in 2016; more recent work has since been published in this area.
+Liu et al. \cite{LiuFengLiuWangLiu} recently proposed a novel architecture named a Bottom-up Broadcast Neural Network (BBNN) to deal with some of the problems traditionally associated with genre classification.
+They identified that many previously developed architectures had focused on abstracting high-level semantic features layer-by-layer; as a result, these architectures suffer from a huge loss of lower-level features which are critical to the task of genre classification.
+Thus, the BBNN architecture was specifically designed to simultaneously abstract high-level information while preserving the lower-level features.
 
 Large datasets are frequently required to train powerful deep neural networks.
 However, in the MIR domain, there is often  a lack of large training datasets.
@@ -62,12 +67,11 @@ They successfully applied this method to reprogram two published models that wer
 
 \section{Dataset}
 
-I used the the GTZAN dataset compiled by Tzanetakis and Cook \cite{TzanetakisCook} to train and validate my models; it contains 1000 WAV audio tracks, each 30 seconds in length.
-There are 100 tracks for each of the 10 genres in the dataset: blues, classical, country, disco, hip-hop, jazz, metal, pop, reggae and rock.
-The CNNs were trained on 0.93 second chunks that were randomly selected from each audio track.
+I used the GTZAN dataset, compiled by Tzanetakis and Cook \cite{TzanetakisCook}, to train and evaluate my models.
+The dataset contains a total of 1000 WAV audio tracks, each 30 seconds in length.
+GTZAN is a balanced dataset, containing 100 tracks for each of the 10 genres in the dataset: blues, classical, country, disco, hip-hop, jazz, metal, pop, reggae and rock.
 
-To produce a training and test set, a stratified split was deemed suitable to prevent imbalance.
-Chunks from 75\% of the WAV audio tracks for each genre were randomly selected to make up the training set, with chunks from the other 25\% of audio tracks for each genre making up the test set.
+I utilised a stratified-by-genre split to produce a training and test set: the training set contained 75\% of the audio tracks, 75 tracks from each genre; while the test set contained the other 25\% of audio tracks.
 
 \section{CNN Architecture (Schindler et al.)}
 
@@ -77,9 +81,9 @@ Chunks from 75\% of the WAV audio tracks for each genre were randomly selected t
     \label{architecture}
 \end{figure}
 
-I recreated the shallow CNN architecture outlined by Schindler et al.; Figure \ref{architecture} displays an abstract representation of the architecture.
+I recreated the shallow CNN architecture outlined by Schindler et al. \cite{SchindlerLidyRauber}; Figure \ref{architecture} displays an abstract representation of the architecture.
 Log-mel spectrograms of shape $80\times80$ are provided as input to the network.
-Since the dimensions of the spectrograms correspond to time and frequency, Schindler et al. proposed a parallel architecture.
+Since the dimensions of the spectrograms correspond to time and frequency, the network utilises a parallel architecture.
 
 The top pipeline aims to capture frequency relations.
 It first contains a convolutional layer (with padding) with 16 kernels of shape $10\times23$ to produce 16 square feature maps of shape $80\times80$.
@@ -89,29 +93,27 @@ Conversely, the bottom pipeline aims to capture temporal relations.
 It too initially contains a convolutional layer (with padding) with 16 kernels, but of approximately square shape $21\times20$ to produce 16 square feature maps of shape $80\times80$.
 These too are then downsampled using a $20\times1$ max pooling layer to produce 16 horizontal rectangular feature maps of shape $4\times80$, specifically to capture temporal changes in intensity.
 
-The 16 feature maps from each piepline are flattened and concatenated to a shape of $1\times10240$, which is mapped to a 200 neuron fully connected layer.
-These final 200 neurons are then mapped to 10 output neurons---10\% dropout is utilised at this layer to prevent overfitting.
-The softmax function is applied to these 10 output neurons to produce a pseudo-probability distribution to represent the probability that a given input belongs to each of the ten genres.
+The 16 feature maps from each piepline are flattened and concatenated to a shape of $1\times10240$, which is mapped to a 200 neuron fully-connected layer.
+These final 200 neurons are then mapped to 10 output neurons---10\% dropout is utilised at this layer to mitigate overfitting.
+The softmax function is applied to these 10 output neurons to produce a pseudo-probability distribution to represent the probability that a given input belongs to each of the 10 genres.
 
-With the exception of the final layer, each convolutional and fully connected layer is passed through the Leaky ReLU activation function.
+With the exception of the final layer, each convolutional and fully-connected layer is passed through the Leaky ReLU activation function.
 
 \section{Implementation Details}
 
-I constructed and trained the shallow CNN using Python and the \textit{PyTorch} \cite{PyTorch} machine learning framework.
+\subsection{Preprocessing}
 
-\subsection{CNN Details}
-
-To implement the CNN I created a \texttt{ShallowCNN} class that inherits from $PyTorch$'s \texttt{nn.Modules} class.
-The class contains a \texttt{forward} method that conducts a forward path for an inputted batch.
+The network was trained and evaluated using a total of 15000 log-mel spectrograms.
+Each audio track in the GTZAN dataset was split into chunks of approximately 0.93 seconds, using a step size of 50\%.
+Log-mel spectrograms of shape $80\times80$ were produced from 15 randomly selected chunks from each track using a fast Fourier transform with a window size of 1024, and a step size of 50\%.
+It was imperative to split the tracks into the training and test sets prior to producing the spectrograms to avoid data leakage.
 
 \subsection{Training Details}
 
-I implemented a \texttt{Trainer} class to train an instance of the \texttt{ShallowCNN} class.
-Supervised learning algorithms require a cost function to evaluate how well the model fits the training data; to maintain consistency with Schindler et al. I implemented cross-entropy loss.
-To prevent overfitting I used L1 regularisation, with a penalty value of $0.0001$.
-I used the Adam optimiser \cite{KingmaBa}---an extension of stochastic gradient descent---to optimise the cross-entropy loss.
-I implemented Adam using $PyTorch$'s \texttt{optim.Adam} class.
-I used a learning rate of $5\times10^{-5}$ with $\beta_1=0.9$, $\beta_2=0.999$, and $\epsilon=1\times10^{-8}$.
+I constructed and trained the CNN using Python and the PyTorch \cite{PyTorch} machine learning framework.
+I reimplemented the training process as described by Schindler et al. \cite{SchindlerLidyRauber}.
+To this respect, I used cross-entropy loss to evaluate the performance of the network, with L1 regularisation to mitigate overfitting using a penalty value of $0.0001$.
+I used the Adam optimiser \cite{KingmaBa}---an extension of stochastic gradient descent---to optimise the network, using a learning rate of $5\times10^{-5}$, $\beta_1=0.9$, $\beta_2=0.999$, and $\epsilon=1\times10^{-8}$ for numerical stability.
 I trained the network on a BlueCrystal Phase 4 GPU node, which contains two NVIDIA Tesla P100 GPUs \cite{bc4}.
 
 \subsection{Weight initialisation}
@@ -119,7 +121,7 @@ I trained the network on a BlueCrystal Phase 4 GPU node, which contains two NVID
 Weight initialisation is an important design choice, since it determines the starting point of the optimisation procedure.
 Schindler et al. did not specify the procedure they used.
 However, modern weight initialisation heuristics exist that depend on the activation function.
-In this respect, I implemented He initialisation using \textit{PyTorch}'s \texttt{nn.init.kaiming\_normal} procedure due to the Leaky ReLU activation function being used throughout the network.
+In this respect, I implemented He initialisation using due to the Leaky ReLU activation function being used throughout the network.
 
 \subsection{Batch size}
 
@@ -131,11 +133,9 @@ Thus, I experimented with multiple batch sizes, and found that my results were m
 
 \section{Replicating Quantitative Results}
 
-Table \ref{shallow_results} displays the mean accuracy my implementation achieved on the test dataset over five runs.
-I have computed the accuracy at both 100 and 200 epochs.
-Much like Schindler et al., I also trained my network for 500 epochs, but there was negligable difference in accuracy.
-This was because the network had already overfit---achieving a test accuracy of near 100\%---so training the network for additional epochs did not improve the network's ability to generalise.
-In this respect, if the network were trained for longer, it is possible the test accuracy would decrease.
+Table \ref{shallow_results} displays the mean accuracy my implementation achieved on the test set over five runs; the accuracy achieved by Schindler et al. \cite{SchindlerLidyRauber} is also displayed for comparison.
+I trained my network for a total of 500 epochs, but there was negligable difference in accuracy after 200 epochs because the network had already overfit---achieving a test accuracy of near 100\%---so training the network for additional epochs did not improve the network's ability to generalise.
+In this respect, if the network were trained for longer, it is likely the test accuracy would decrease.
 
 \begin{table}[htbp]
     \caption{Accuracy achieved on the test set}
@@ -156,15 +156,13 @@ In this respect, if the network were trained for longer, it is possible the test
 \end{table}
 
 Notably, the accuracy achieved is approximately 3\% lower than that of Schindler et al.
-Though I cannot determine the exact reason for this discrepency, I can speculate on several potential ones.
-Firstly, Schindler et al. may not have specified the full design details of the network necessary for reproducibility.
-Alternatively, it may due to the fact that the $Keras$ library they used has different default parameters than the $PyTorch$ library I produced my implementation in.
+This discrepency can potentially be attributed to Schindler et al. not specifying the full design details necessary for reproducibility.
+Importantly, Schindler et al. produced their implementation in Keras, which often has different default parameters than Pytorch.
 
-The confusion matrix in Figure \ref{confusion_matrix} displays the performance of my implementation after 200 epochs.
-The model achieved a high accuracy on specific genres, but a low accuracy on others, as evidenced by the confusion matrix in Figure \ref{confusion_matrix}.
-There is a large discrepency in the per-class accuracy of different genres.
-The network achieved a per class accuracy of over 75\% on the blues, classical and metal genres.
-While conversely, it achieved less than a 40\% per-class accuracy on the rock and reggae genres---notably it classified 21\% of rock songs as blues.
+Figure \ref{confusion_matrix} is a confusion matrix displaying the the performance of my implementation after 200 epochs.
+Notably, there is a large inconsistency in the per-class accuracy of different genres.
+For example, the network achieved a high per class accuracy of over 80\% on the blues, classical and metal genres.
+While conversely, it achieved less than a 40\% per-class accuracy on the reggae and rock genres; in particular, it misclassified 21\% of rock songs as blues.
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=\columnwidth]{cm.png}}
@@ -178,8 +176,8 @@ While conversely, it achieved less than a 40\% per-class accuracy on the rock an
 \section{Training Curves}
 
 Overfitting occurs when a network learns the noise in the data as if it represents the structure of the underlying model.
-To detect overfitting, loss and accuracy are important metrics to monitor during training; Figure \ref{accuracy_curves} and Figure \ref{loss_curves} display the accuracy and loss curves for my network, respectively.
-For the training set, I logged the loss and accuracy of the batch at the end of each step; for the test set, I logged the loss and accuracy of the entire test set at the end of each epoch.
+To detect overfitting, I monitored the loss and accuracy my network achieved on both the training and test set throughout the training process.
+Figure \ref{accuracy_curves} and Figure \ref{loss_curves} display the accuracy and loss curves for my network, respectively.
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=\columnwidth]{accuracy.png}}
@@ -231,7 +229,7 @@ An analysis of these spectrograms, as well as listening to the audio files from 
     \label{spectrograms}
 \end{figure}
 
-The spectrogram in Figure \ref{spec_correct} was classified correctly, and as were the other 14 log-mel spectrograms extracted from `classical.00070.wav'.
+The spectrogram in Figure \ref{spec_correct} was correctly classified as belonging to the classical genre, and as were the other 14 log-mel spectrograms extracted from `classical.00070.wav'.
 The audio within the file is very characteristic of classical music, with long notes played from a violin.
 Harmonics produced by the violin are represented by the long parallel lines that stretch across the entirety of the file.
 An analysis of other spectrograms produced from classical music appear very similar.
@@ -252,14 +250,17 @@ It is highly unlikely even a human would agree with all of the genre classiciati
 
 \subsection{Maximum Probability and Majority Voting}
 
-Thus far, I have computed the `raw' accuracy of my model, by individually predicting the genre for each sample in my dataset.
-However, this is not the optimal method, since it ignores all file dependencies; each WAV audio track within the dataset is represented by fifteen 0.93 second samples.
-Schindler et al. recognised this, and achieved a substantial improvement in accuracy by introducing two new methods of classification: maximum probability and majority vote---both of which take file dependencies into account.
+Thus far, I have computed the `raw' accuracy of my model, by predicting the genre for each sample in my dataset independently.
+However, this is not the optimal method since it ignores all file dependencies---there are 15 spectrograms for each WAV audio track in the GTZAN dataset.
+Schindler et al. recognised this, and achieved a substantial improvement in accuracy by introducing two new methods of classification: maximum probability and majority vote, both of which take file dependencies into account.
 To classify an inputted audio file by maximum probability, the probabilities output by the final softmax layer for each segment are first summed; then, the predicted class is determined by the largest value amongst the summed probabilities.
 To classify an inputted audio file by majority vote, a class is determined for each segment by the largest value output by the final layer; then, a majority vote is conducted over the predicted classes for each of the segments.
 
 Table \ref{improved_results} displays the accuracy achieved using each of the raw, maximum probability and majority vote approaches.
-The relative improvement to accuracy provided by maximum probability classification and majority vote classification are consistent with the findings of Schindler et al.
+The relative improvement in accuracy provided by the two new approaches are consistent with the findings of Schindler et al.
+The increase in accuracy is due to to there being some level of independence in the predictions of samples from a given file.
+This independence can be attributed to the 0.93 second samples often being too short to be representative, as well as the model overfitting the training data.
+The majority vote and maximum probability classification methods essentially cancel out many of the individual errors to produce more accurate predictions for entire files.
 
 \begin{table}[htbp]
     \caption{Improved accuracy achieved on the test set}
@@ -293,7 +294,7 @@ where $x$ is the output from the previous layer; $\hat{x}$ is the input to the s
 
 I implemented a two-dimensional batch normalisation layer following each of the two convolutional layers in my network using $PyTorch$'s \texttt{nn.BatchNorm2d} class.
 Table \ref{improved_results} displays the accuracy of my network with the inclusion of the batch normalisation layers.
-Not only did batch normalisation provide a reasonabe improvement in accuracy after 200 epochs---especially in the case of raw accuracy---but, it also reduced the number of epochs required for divergence to a small degree.
+Not only did batch normalisation provide a reasonabe improvement in accuracy after 200 epochs---especially in the case of raw accuracy---but, it also reduced the number of epochs required for convergence to a small degree.
 Unlike in the case of the CNN trained without batch normalisation, the difference in accuracy between 100 and 200 epochs is very minimal.
 The precise reasons for the improved performance are unclear: Batch normalisation has strong empirical performance, but there is some disagreement as to the theory behind its effectiveness.
 Santukar et al. \cite{SanturkarEtAl} proposed that batch normalisation significantly smoothes the optimisation landscape, which induces a more predictive and stable behaviour of the gradients, thus facilitating faster training.
@@ -311,12 +312,28 @@ This is because batch normalisation also works as a regulariser, due to the fact
     \label{accuracy_curves_improved}
 \end{figure}
 
+\begin{figure}[htbp]
+    \centerline{\includegraphics[width=\columnwidth]{cm_improved.png}}
+    \caption{
+        Confusion matrix displaying the performance of my improved network with batch normalisation on the test set after 200 epochs for a single training run.
+        Classification was performed using the maximum probability method.
+        Format is the same as for Figure \ref{confusion_matrix}.
+    }
+    \label{confusion_matrix_improved}
+\end{figure}
+
 \section{Conclusion and Future Work}
 
-In this paper I have successfully reimplemented the shallow CNN architecture as described by Schindler et al.
-I also proposed an extension to the architecture, with the inclusion of two batch normalisation layers.
+In this paper I have reimplemented the shallow CNN architecture as originally described by Schindler et al. \cite{SchindlerLidyRauber}.
+While I was unable to reproduce the results published in the original paper, I have exposed a significant discrepency in the per-class accuracy when the the network is trained using the GTZAN dataset.
+Moreso, I have conducted an extensive qualitative analysis to gain an insight into potential reasons for this discrepency.
 
-Problems with the dataset. Is the dataset representative?
+In the latter part of this paper, I have also proposed an extension to the architecture with the inclusion of two batch normalisation layers.
+I found that the inclusion of these layers offered an advantage over the original architecture by reducing the time required for convergence, as well as providing a modest improvement to accuracy.
+
+Future work should focus on eliminating the stark discrepency in per-class accuracy.
+Further extensions should also be considered with the aim of reducing the degree to which the network overfits.
+Data augmentation provides a potential avenue to explore in this respect.
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
