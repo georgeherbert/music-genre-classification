@@ -13,6 +13,13 @@
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
+\captionsetup[table]{
+    justification=centerlast,
+    labelsep=newline,
+    textfont={footnotesize, sc},
+    labelfont=footnotesize,
+    skip=0pt,
+}
 
 \title{Shallow Convolutional Neural Network Architectures for Music Genre Classification}
 
@@ -131,7 +138,7 @@ This was because the network had already overfit---achieving a test accuracy of 
 In this respect, if the network were trained for longer, it is possible the test accuracy would decrease.
 
 \begin{table}[htbp]
-    \caption{Shallow CNN Accuracy on the Test Set}
+    \caption{Accuracy achieved on the test set}
     \begin{center}
     \begin{tabular}{l c c}
     \toprule
@@ -255,7 +262,7 @@ Table \ref{improved_results} displays the accuracy achieved using each of the ra
 The relative improvement to accuracy provided by maximum probability classification and majority vote classification are consistent with the findings of Schindler et al.
 
 \begin{table}[htbp]
-    \caption{Improved Accuracy on the Test Set}
+    \caption{Improved accuracy achieved on the test set}
     \begin{center}
     \begin{tabular}{l c c c c}
     \toprule
