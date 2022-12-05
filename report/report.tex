@@ -44,14 +44,17 @@ Music Information Retrieval, Music Genre Classification, Convolutional Neural Ne
 
 \section{Introduction}
 
-Explosive growth in the audio streaming industry has fuelled rapid developments in the interdisciplinary science of music information retrieval (MIR).
-Applications of MIR are of evergrowing importance to the music industry to improve tools such as recommender systems, which can offer a competitive advantage.
-Genre classification is one of the most fundamental problems in MIR.
-Early approaches, such as that by Tzanetakis and Cook \cite{TzanetakisCook}, focused on training statistical classifiers using vector summaries of features such as timbral texture, rhythmic content and pitch content; however, these summaries are absent of the important temporal structure in the underlying audio.
-More recently, audio spectrograms---which represent frequency data over time---have been widely investigated and used to train state-of-the-art deep-learning architectures.
+The explosive growth of digital music platforms has sparked significant advancements in the field of music information retrieval (MIR), a rapidly evolving discipline that focuses on developing computational techniques to extract valuable insights from music and audio signals.
+As MIR technologies continue to advance, they are becoming increasingly crucial for the music industry, enabling the creation of more effective tools such as recommender systems, which can provide a competitive edge in a crowded market.
 
-To this respect, this paper explores the shallow convolutional neural network (CNN) architecture proposed by Schindler et al. \cite{SchindlerLidyRauber}.
-CNNs have been widely investigated in the context of genre classification following their successes in the field of computer vision.
+One of the key challenges in MIR is genre classification, which involves identifying the musical genre of a given audio signal.
+Accurate genre classification can help music providers organise and categorise their catalogs, and enable users to search and discover new music in a more efficient and effective way.
+Early efforts to solve this problem, such as that proposed by Tzanetakis and Cook \cite{TzanetakisCook}, employed statistical classifiers that were trained on vector summaries of features such as timbral texture, rhythmic content and pitch content.
+However, these summaries fail to capture the temporal structure of the underlying audio.
+In recent years, researchers have turned to audio spectrograms, which represent frequency data over time, to train state-of-the-art deep-learning models that can effectively classify audio signals based on genre.
+
+Convolutional neural networks (CNNs) are one type of network that have been widely employed, following their successes in the field of computer vision.
+In this paper, we explore the use of CNNs for genre classification, and specifically investigate the shallow CNN architecture proposed by Schindler et al. \cite{SchindlerLidyRauber}, which was shown to achieve modest performance on this task.
 
 \section{Related Work}
 
