@@ -34,8 +34,6 @@ cj19328@bristol.ac.uk}
 
 \begin{abstract}
 In this paper I implement and evaluate the shallow convolutional neural network architecture proposed by Schindler et al. \cite{SchindlerLidyRauber} for the task of music genre categorisation.
-In the first part of this paper, I describe the process I undertook to implement the network.
-While in the latter part, I evaluate the results my implementation achieved, and extend on their work by implementing batch normalisation.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -72,67 +70,69 @@ They successfully applied this method to reprogram two published models that wer
 
 I used the GTZAN dataset, compiled by Tzanetakis and Cook \cite{TzanetakisCook}, to train and evaluate my models.
 The dataset contains a total of 1000 WAV audio tracks, each 30 seconds in length.
-GTZAN is a balanced dataset, containing 100 tracks for each of the 10 genres in the dataset: blues, classical, country, disco, hip-hop, jazz, metal, pop, reggae and rock.
+GTZAN is a balanced dataset, containing 100 tracks for each of the 10 genres labelled in the dataset: blues, classical, country, disco, hip-hop, jazz, metal, pop, reggae and rock.
 
-I utilised a stratified-by-genre split to produce a training and test set: the training set contained 75\% of the audio tracks, 75 tracks from each genre; while the test set contained the other 25\% of audio tracks.
+I utilised a stratified-by-genre split to produce a training and test set: the training set consisted of 750 tracks (75 tracks from each genre), while the test set contained the remaining 250 tracks of audio tracks.
 
-\section{CNN Architecture (Schindler et al.)}
+\section{CNN Architecture}
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=\columnwidth]{architecture.jpg}}
-    \caption{Abstract representation of the shallow CNN architecture as described by Schindler et al.}
+    \caption{Schematic representation of the shallow CNN architecture as described by Schindler et al. in \cite{SchindlerLidyRauber}.}
     \label{architecture}
 \end{figure}
 
-I recreated the shallow CNN architecture outlined by Schindler et al. \cite{SchindlerLidyRauber}; Figure \ref{architecture} displays an abstract representation of the architecture.
-Log-mel spectrograms of shape $80\times80$ are provided as input to the network.
-Since the dimensions of the spectrograms correspond to time and frequency, the network utilises a parallel architecture.
+I recreated the shallow CNN architecture described by Schindler et al. in \cite{SchindlerLidyRauber}.
+Figure \ref{architecture} displays a schematic representation of the architecture.
+The network takes log-mel spectrograms of shape $80\times80$ as input, of which the dimensions corresponding to frequency and time.
+To effectively process the temporal and spectral characteristics of the input spectrograms, the architecture employs a parallel design.
+The upper pipeline captures frequency relations in the input, while the lower pipeline captures temporal relations.
 
-The top pipeline aims to capture frequency relations.
-It first contains a convolutional layer (with padding) with 16 kernels of shape $10\times23$ to produce 16 square feature maps of shape $80\times80$.
-These are then downsampled using a $1\times20$ max pooling layer to produce 16 vertical rectangular feature maps of shape $80\times4$.
-The kernel and max pooling shapes were specifically selected to capture spectral characteristics.
-Conversely, the bottom pipeline aims to capture temporal relations.
-It too initially contains a convolutional layer (with padding) with 16 kernels, but of approximately square shape $21\times20$ to produce 16 square feature maps of shape $80\times80$.
-These too are then downsampled using a $20\times1$ max pooling layer to produce 16 horizontal rectangular feature maps of shape $4\times80$, specifically to capture temporal changes in intensity.
+The upper pipeline includes a convolutional layer with 16 kernels of shape $10\times23$ (with padding), which produces 16 sqaure feature maps of shape $80\times80$.
+These feature maps are then downsampled using a max pooling layer with a window of shape $1\times20$, resulting in 16 vertical rectangular feature maps of shape $80\times4$.
+
+The lower pipeline also includes a convolutional layer with 16 kernels (with padding), but these are approximately square of shape $21\times20$.
+The resulting 16 square feature maps of shape $80\times80$ are downsampled using a max pooling layer with a window of shape $20\times1$, resulting in 16 horizontal rectangular feature maps of shape $4\times80$.
 
 The 16 feature maps from each piepline are flattened and concatenated to a shape of $1\times10240$, which is mapped to a 200 neuron fully-connected layer.
-These final 200 neurons are then mapped to 10 output neurons---10\% dropout is utilised at this layer to mitigate overfitting.
-The softmax function is applied to these 10 output neurons to produce a pseudo-probability distribution to represent the probability that a given input belongs to each of the 10 genres.
+These final 200 neurons are then mapped to 10 output neurons, with 10\% dropout utilised to mitigate overfitting.
+The softmax function is applied to these 10 output neurons to produce a pseudo-probability distribution that indicates the probability that a given input belongs to each of the 10 genres.
 
-With the exception of the final layer, each convolutional and fully-connected layer is passed through the Leaky ReLU activation function.
+Except for the final layer, each convolutional and fully-connected layer is passed through a Leaky ReLU activation function with $\alpha=0.3$.
+Leaky ReLU is an extension to the ReLU activation function that outputs a small non-zero value $f(x) = \alpha x$ for negative inputs.
 
 \section{Implementation Details}
 
 \subsection{Preprocessing}
 
 The network was trained and evaluated using a total of 15000 log-mel spectrograms.
-Each audio track in the GTZAN dataset was split into chunks of approximately 0.93 seconds, using a step size of 50\%.
-Log-mel spectrograms of shape $80\times80$ were produced from 15 randomly selected chunks from each track using a fast Fourier transform with a window size of 1024, and a step size of 50\%.
-It was imperative to split the tracks into the training and test sets prior to producing the spectrograms to avoid data leakage.
+To create these spectrograms, each audio track in the GTZAN dataset was first split into chunks of approximately 0.93 seconds, using a step size of 50\%.
+15 randomly selected chunks from each track were then transformed into log-mel spectrograms of shape $80\times80$ using a fast Fourier transform with a window size of 1024, and a step size of 50\%.
+To avoid data leakage, the tracks were split into training and test sets before the spectrograms were created.
+This ensured the model would not have access to any information about the test set during training, allowing for a fair and accurate evaluation of its performance.
 
 \subsection{Training Details}
 
 I constructed and trained the CNN using Python and the PyTorch \cite{PyTorch} machine learning framework.
-I reimplemented the training process as described by Schindler et al. \cite{SchindlerLidyRauber}.
-To this respect, I used cross-entropy loss to evaluate the performance of the network, with L1 regularisation to mitigate overfitting using a penalty value of $0.0001$.
+The training process was implemented according to the method described by Schindler et al. in \cite{SchindlerLidyRauber}.
+I used cross-entropy loss to evaluate the performance of the network, and employed L1 regularisation with a penalty value of $0.0001$ to mitigate overfitting.
 I used the Adam optimiser \cite{KingmaBa}---an extension of stochastic gradient descent---to optimise the network, using a learning rate of $5\times10^{-5}$, $\beta_1=0.9$, $\beta_2=0.999$, and $\epsilon=1\times10^{-8}$ for numerical stability.
 I trained the network on a BlueCrystal Phase 4 GPU node, which contains two NVIDIA Tesla P100 GPUs \cite{bc4}.
 
 \subsection{Weight initialisation}
 
-Weight initialisation is an important design choice, since it determines the starting point of the optimisation procedure.
-Schindler et al. did not specify the procedure they used.
-However, modern weight initialisation heuristics exist that depend on the activation function.
-In this respect, I implemented He initialisation using due to the Leaky ReLU activation function being used throughout the network.
+Weight initialisation is a crucial design choice, as it determines the starting point of the optimisation procedure.
+In the shallow CNN architecture proposed by Schindler et al. in \cite{SchindlerLidyRauber}, the authors did not specify the weight initialisation procedure they used.
+However, there are modern heuristics for weight initialisation that depend on the activation function used in the network.
+In this case, since the network uses the Leaky ReLU activation function throughout, I implemented He Gaussian initialisation, which is well-suited for networks with Leaky ReLU activations.
 
 \subsection{Batch size}
 
-Batch size is a fundamental hyperparameter to consider when training deep networks.
+Batch size is an important hyperparameter to consider when training deep learning models.
 Smaller batches give rise to longer epochs and introduce extra noise to the weight updates; however, this noise can prove beneficial if the error manifold has many deep local optima.
 Conversely, larger batches give rise to shorter epochs, but networks trained with large batches often struggle to generalise.
-Schindler et al. did not identify the batch size they used for training.
-Thus, I experimented with multiple batch sizes, and found that my results were most similar with a batch size of 64.
+Schindler et al. did not identify the batch size they used for training in \cite{SchindlerLidyRauber}.
+Therefore, I experimented with multiple batch sizes in preliminary experiments and found that a batch size of 64 yielded the best results.
 
 \section{Replicating Quantitative Results}
 
@@ -158,9 +158,7 @@ In this respect, if the network were trained for longer, it is likely the test a
     \end{center}
 \end{table}
 
-Notably, the accuracy achieved is approximately 3\% lower than that of Schindler et al.
-This discrepency can potentially be attributed to Schindler et al. not specifying the full design details necessary for reproducibility.
-Importantly, Schindler et al. produced their implementation in Keras, which often has different default parameters than Pytorch.
+Our results differed by approximately 3\% from those reported in the original paper \cite{SchindlerLidyRauber}, likely due to differences in the experimental setup and assumptions made between the two studies.
 
 Figure \ref{confusion_matrix} is a confusion matrix displaying the the performance of my implementation after 200 epochs.
 Notably, there is a large inconsistency in the per-class accuracy of different genres.
