@@ -52,7 +52,7 @@ However, these summaries fail to capture the temporal structure of the underlyin
 In recent years, researchers have turned to audio spectrograms, which represent frequency data over time, to train state-of-the-art deep-learning models that can effectively classify audio signals based on genre.
 
 Convolutional neural networks (CNNs) are one type of network that have been widely employed, following their successes in the field of computer vision.
-In this paper, we explore the use of CNNs for genre classification, and specifically investigate the shallow CNN architecture proposed by Schindler et al. \cite{SchindlerLidyRauber}, which was shown to achieve modest performance on this task.
+In this paper, we explore the use of CNNs for genre classification, and specifically investigate the shallow CNN architecture proposed by Schindler et al. in \cite{SchindlerLidyRauber}, which was shown to achieve modest performance on this task.
 
 \section{Related Work}
 
@@ -72,7 +72,7 @@ I used the GTZAN dataset, compiled by Tzanetakis and Cook \cite{TzanetakisCook},
 The dataset contains a total of 1000 WAV audio tracks, each 30 seconds in length.
 GTZAN is a balanced dataset, containing 100 tracks for each of the 10 genres labelled in the dataset: blues, classical, country, disco, hip-hop, jazz, metal, pop, reggae and rock.
 
-I utilised a stratified-by-genre split to produce a training and test set: the training set consisted of 750 tracks (75 tracks from each genre), while the test set contained the remaining 250 tracks of audio tracks.
+I utilised a stratified-by-genre split to produce a training and test set: the training set consisted of 750 tracks (75 tracks from each genre), while the test set contained the remaining 250 tracks.
 
 \section{CNN Architecture}
 
@@ -84,7 +84,7 @@ I utilised a stratified-by-genre split to produce a training and test set: the t
 
 I recreated the shallow CNN architecture described by Schindler et al. in \cite{SchindlerLidyRauber}.
 Figure \ref{architecture} displays a schematic representation of the architecture.
-The network takes log-mel spectrograms of shape $80\times80$ as input, of which the dimensions corresponding to frequency and time.
+The network takes log-mel spectrograms of shape $80\times80$ as input, of which the dimensions correspond to frequency and time.
 To effectively process the temporal and spectral characteristics of the input spectrograms, the architecture employs a parallel design.
 The upper pipeline captures frequency relations in the input, while the lower pipeline captures temporal relations.
 
@@ -136,9 +136,10 @@ Therefore, I experimented with multiple batch sizes in preliminary experiments a
 
 \section{Replicating Quantitative Results}
 
-Table \ref{shallow_results} displays the mean accuracy my implementation achieved on the test set over five runs; the accuracy achieved by Schindler et al. \cite{SchindlerLidyRauber} is also displayed for comparison.
-I trained my network for a total of 500 epochs, but there was negligable difference in accuracy after 200 epochs because the network had already overfit---achieving a test accuracy of near 100\%---so training the network for additional epochs did not improve the network's ability to generalise.
-In this respect, if the network were trained for longer, it is likely the test accuracy would decrease.
+Table \ref{shallow_results} shows the mean accuracy my implementation achieved on the test set over five runs, along with the accuracy achieved by Schindler et al. \cite{SchindlerLidyRauber} for comparison.
+% I trained my network for a total of 500 epochs, but there was negligable difference in accuracy after 200 epochs because the network had already overfit---achieving a test accuracy of near 100\%---so training the network for additional epochs did not improve the network's ability to generalise.
+% In this respect, if the network were trained for longer, it is likely the test accuracy would decrease.
+Our results differed by approximately 3\%, likely due to differences in the experimental setup and assumptions made between the two studies.
 
 \begin{table}[htbp]
     \caption{Accuracy achieved on the test set}
@@ -147,8 +148,8 @@ In this respect, if the network were trained for longer, it is likely the test a
     \toprule
     \textbf{Model}&\textbf{Epoch}&\textbf{Accuracy}\\
     \midrule
-    \multirow{ 2}{*}{My CNN} & 100 & 62.96 \\
-    & 200 & 64.01 \\
+    \multirow{ 2}{*}{My CNN} & 100 & 63.58 \\
+    & 200 & 64.02 \\
     \midrule
     \multirow{ 2}{*}{Schindler et al.} & 100 & 66.56\\
     & 200 & 67.49 \\
@@ -158,12 +159,10 @@ In this respect, if the network were trained for longer, it is likely the test a
     \end{center}
 \end{table}
 
-Our results differed by approximately 3\% from those reported in the original paper \cite{SchindlerLidyRauber}, likely due to differences in the experimental setup and assumptions made between the two studies.
-
 Figure \ref{confusion_matrix} is a confusion matrix displaying the the performance of my implementation after 200 epochs.
-Notably, there is a large inconsistency in the per-class accuracy of different genres.
-For example, the network achieved a high per class accuracy of over 80\% on the blues, classical and metal genres.
-While conversely, it achieved less than a 40\% per-class accuracy on the reggae and rock genres; in particular, it misclassified 21\% of rock songs as blues.
+Notably, the matrix shows a significant difference in the per-class accuracy for different genres.
+For example, the network achieved a high per class accuracy of least 80\% on the blues, classical and metal genres.
+While conversely, it achieved less than a 50\% per-class accuracy on the reggae and rock genres; in particular, it misclassified 22\% of reggae songs as hip-hop.
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=\columnwidth]{cm.png}}
@@ -176,8 +175,8 @@ While conversely, it achieved less than a 40\% per-class accuracy on the reggae 
 
 \section{Training Curves}
 
-Overfitting occurs when a network learns the noise in the data as if it represents the structure of the underlying model.
-To detect overfitting, I monitored the loss and accuracy my network achieved on both the training and test set throughout the training process.
+Overfitting occurs when a network learns the random noise in the data as if it represents the structure of the underlying model.
+To detect overfitting, I monitored the loss and accuracy my network of my network on both the training and test set throughout the training process.
 Figure \ref{accuracy_curves} and Figure \ref{loss_curves} display the accuracy and loss curves for my network, respectively.
 
 \begin{figure}[htbp]
@@ -188,8 +187,8 @@ Figure \ref{accuracy_curves} and Figure \ref{loss_curves} display the accuracy a
     \label{accuracy_curves}
 \end{figure}
 
-After 200 epochs, there was a discrepency of approximately 35\% in the accuracy of the model on the training and test sets---this strongly indicates that the shallow CNN architecture overfit.
-Despite using L1 regularisation and dropout, the model had memorised almost every sample in the training set, and therefore struggled to generalise to unseen data.
+After 200 epochs, there was a significant difference of approximately 35\% in the accuracy of the model on the training and test sets---this strongly indicates that the shallow CNN architecture had overfit the training data.
+Even though I used L1 regularisation and dropout to mitigate overfitting, the model still memorised almost every sample in the training set, and therefore struggled to generalise to unseen data.
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=\columnwidth]{loss.png}}
@@ -202,66 +201,75 @@ Despite using L1 regularisation and dropout, the model had memorised almost ever
 
 \section{Qualitative Results}
 
-Deep neural networks are frequently described as black-box models, because it can be exceptionally difficult to reason about the features they extract to produce their outputs.
-% I analysed log-mel spectrograms classified by my network, as well as their respective audio files, to reason about the areas in which it succeeds and fails.
-Figure \ref{spectrograms} displays three log-mel spectrograms produced from samples from the audio tracks in the GTZAN dataset.
-An analysis of these spectrograms, as well as listening to the audio files from which they were derived, yields some clues as to the discrepencies in per-class accuracy that the network achieved.
+Deep neural networks are frequently described as black-box models because it can be exceptionally difficult to reason about the features they extract to produce their outputs.
+To provide a more comprehensive understanding of the performance of the network, Figure \ref{spectrograms} presents three log-mel spectrograms produced from samples in the GTZAN dataset to illustrate where the network performed well and where is struggled.
+By examining these spectrograms and listening to the corresponding audio files, I have gained an insight into the reasons for the discrepancies in per-class accuracy that the network achieved.
 
 \begin{figure}[htbp]
     \centering
     \begin{subfigure}[b]{0.32\columnwidth}
         \centerline{\includegraphics[width=\columnwidth]{spec_correct.png}}
-        \caption{classical.00070}
+        \caption{classical.00070.wav\\Ground truth: Classical\\Prediction: Classical}
         \label{spec_correct}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.32\columnwidth}
         \centerline{\includegraphics[width=\columnwidth]{spec_incorrect_1.png}}
-        \caption{jazz.00003}
+        \caption{jazz.00003.wav\\Ground truth: Jazz\\Prediction: Classical}
         \label{spec_incorrect_1}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.32\columnwidth}
         \centerline{\includegraphics[width=\columnwidth]{spec_incorrect_2.png}}
-        \caption{Correct}
+        \caption{pop.00064.wav\\Ground truth: Pop\\Prediction: Disco}
         \label{spec_incorrect_2}
     \end{subfigure}
-    \caption{Log-mel spectrograms produced from three of the samples in the test dataset.}
+    \caption{
+        Log-mel spectrograms produced from three of the samples in the test dataset.
+        Each spectrogram is subcaptioned with the name of the file it was produced from, the ground-truth genre and the predicted genre.
+    }
     \label{spectrograms}
 \end{figure}
 
-The spectrogram in Figure \ref{spec_correct} was correctly classified as belonging to the classical genre, and as were the other 14 log-mel spectrograms extracted from `classical.00070.wav'.
-The audio within the file is very characteristic of classical music, with long notes played from a violin.
-Harmonics produced by the violin are represented by the long parallel lines that stretch across the entirety of the file.
-An analysis of other spectrograms produced from classical music appear very similar.
-One can see how a neural network could relatively easily learn that extended parallel lines such as these indicate classical music.
+Figure \ref{spec_correct} displays a correctly classified spectrogram from the classical genre.
+In fact, the network correctly classified all 15 spectrograms produced from the same audio file.
+This is unsurpsising, as the music from the file is very typical of classical music, with piece being played by the string section of an orchestra.
+The harmonics produced by these string instruments are clearly visible in the spectrogram as extended parallel lines.
 
-Conversely, the network incorrectly predicetd the class for all spectrograms produced from `jazz.00003.wav'.
-A spectrogram produced from a segment of the audio file is shown in Figure \ref{spec_incorrect_1}, in which there are long parallel lines characteristic of classical music.
-In fact, nine of the spectrograms derived from the file were classified as being classical.
-This lends credence to the idea that the network classifies spectrograms with long parallel lines as being classical music.
+In contrast, Figure \ref{spec_incorrect_1} displays a spectrogram from a piece of jazz music that the network misclassified as classical.
+It made the same error with 9 of the 15 spectrograms derived from the same piece of music.
+Although it is impossible to determine the exact reason for these errors, the music itself appeared to borrow elements from both the classical and jazz genres.
+While the piece used a jazz chord progression, there is was no syncopated beat, and it appears to contain a classical drum.
+Therefore, if a spectrogram was produced from a short sample that included a classical drum, it is not surprising that the network misclassified it.
+This highlights a potential problem with the method itself used to train and test the network, in that 0.93 second samples are often insufficient to represent a piece of music accurately.
 
-The spectrogram in Figure `pop.00064.wav' was also incorrectly classifed, as were 13 of the other spectrograms derived from the same file.
-In fact, 11 of the spectrograms were incorrectly classified as being disco music.
-This arguably highlights a fundamental problem with using genre as a way of classifying music: its subjective nature.
-Genres are often not defined objectively.
-It is highly unlikely even a human would agree with all of the genre classiciations in the dataset, which makes it understandable that a machine too would incorrectly classify so many samples.
+Figure \ref{spec_incorrect_2} shows a spectrogram produced from a piece of pop music that the network misclassified as disco.
+This is also unsurprising.
+The song has a disco beat at the beginning and first set of vocals are typical of disco music.
+Many pop songs have been influenced by disco, and pop artists often incorporate elements of disco into their music.
+This highlights a potential fundamental issue with using genre to classify music in the first place.
+The concept of genre itself is somewhat subjective and can vary depending on the individual and their personal taste.
+Many pieces of music can be classified as belonging to multiple genres, and I believe this piece fits into that category.
 
 \section{Improvements}
 
 \subsection{Maximum Probability and Majority Voting}
 
-Thus far, I have computed the `raw' accuracy of my model, by predicting the genre for each sample in my dataset independently.
-However, this is not the optimal method since it ignores all file dependencies---there are 15 spectrograms for each WAV audio track in the GTZAN dataset.
-Schindler et al. recognised this, and achieved a substantial improvement in accuracy by introducing two new methods of classification: maximum probability and majority vote, both of which take file dependencies into account.
-To classify an inputted audio file by maximum probability, the probabilities output by the final softmax layer for each segment are first summed; then, the predicted class is determined by the largest value amongst the summed probabilities.
-To classify an inputted audio file by majority vote, a class is determined for each segment by the largest value output by the final layer; then, a majority vote is conducted over the predicted classes for each of the segments.
+As previously mentioned, each audio file in the GTZAN \cite{TzanetakisCook} dataset was preprocessed to produce 15 log-mel spectrograms.
+In order to improve the accuracy of my network, I implemented two additional classification methods that take these file dependencies into account: maximum probability classification and majority vote classification.
 
+To classify an inputted audio file by maximum probability, the probabilities output by the final softmax layer for each spectrogram are first summed.
+The predicted class is then determined by the largest value amongst the summed probabilities.
+To classify an inputted audio file by majority vote, a class is determined for each spectrogram by the largest value output by the final layer.
+A majority vote is then conducted over the predicted classes for each of the segments.
+
+These methods allow the network to consider the collective evidence from all the spectrograms for each audio file to make a more informed and accurate prediction about the genre of a given audio file. 
 Table \ref{improved_results} displays the accuracy achieved using each of the raw, maximum probability and majority vote approaches.
-The relative improvement in accuracy provided by the two new approaches are consistent with the findings of Schindler et al.
+The relative improvement in accuracy provided by the two new approaches are consistent with the findings of Schindler et al in \cite{SchindlerLidyRauber}.
+
 The increase in accuracy is due to to there being some level of independence in the predictions of samples from a given file.
 This independence can be attributed to the 0.93 second samples often being too short to be representative, as well as the model overfitting the training data.
-The majority vote and maximum probability classification methods essentially cancel out many of the individual errors to produce more accurate predictions for entire files.
+The majority vote and maximum probability classification methods effectively cancel out many of the individual errors to produce more accurate predictions for entire files.
 
 \begin{table}[htbp]
     \caption{Improved accuracy achieved on the test set}
@@ -272,11 +280,11 @@ The majority vote and maximum probability classification methods essentially can
     \cmidrule(lr){3-5}
     \textbf{Model}&\textbf{Epoch}&\textbf{Raw}&\textbf{Max}&\textbf{Maj}\\
     \midrule
-    \multirow{ 2}{*}{My CNN} & 100 & 62.96 & 75.80 & 73.53 \\
-    & 200 & 64.01 & 77.60 & 76.60 \\
+    \multirow{ 2}{*}{My CNN} & 100 & 63.58 & 77.44 & 75.84 \\
+    & 200 & 64.02 & 77.20 & 76.16 \\
     \midrule
-    \multirow{ 2}{*}{My CNN + Batch Norm} & 100 & 66.30 & 77.30 & 77.56 \\
-    & 200 & \textbf{66.55} & \textbf{78.68} & \textbf{77.64} \\
+    \multirow{ 2}{*}{My CNN + Batch Norm} & 100 & 66.47 & 78.88 & 76.24 \\
+    & 200 & \textbf{66.78} & \textbf{79.60} & \textbf{77.68} \\
     \bottomrule
     \end{tabular}
     \label{improved_results}
