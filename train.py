@@ -27,24 +27,18 @@ class ShallowCNN(nn.Module):
     in a batch of spectrograms and outputs a music genre predictions.
     """
 
-    def __init__(self, batch_norm: bool = False) -> None:
+    def __init__(self) -> None:
         """Initialise the shallow CNN.
 
         This method initialises the layers of the shallow CNN, including the
-        convolutional layers, batch normalisation layers (if applicable),
-        pooling layers, fully-connected layers, and the leaky ReLU activation
+        convolutional layers, batch normalisation layers, pooling layers,
+        fully-connected layers, and the leaky ReLU activation
         function.
-
-        Args:
-            batch_norm (bool, optional): Whether to use batch normalisation.
-            Defaults to False.
 
         Returns:
             None
         """
         super().__init__()
-        self.batch_norm = batch_norm
-
         self.conv_left = nn.Conv2d(1, 16, (10, 23), 1, "same")
         self.bn_conv_left = nn.BatchNorm2d(16)
         self.pool_left = nn.MaxPool2d((1, 20), (1, 20))
@@ -81,13 +75,11 @@ class ShallowCNN(nn.Module):
             torch.Tensor: The output of the shallow CNN.
         """
         x_left = self.conv_left(spectrograms)
-        if self.batch_norm:
-            x_left = self.bn_conv_left(x_left)
+        x_left = self.bn_conv_left(x_left)
         x_left = self.leaky_relu(x_left)
         x_left = self.pool_left(x_left)
         x_right = self.conv_right(spectrograms)
-        if self.batch_norm:
-            x_right = self.bn_conv_right(x_right)
+        x_right = self.bn_conv_right(x_right)
         x_right = self.leaky_relu(x_right)
         x_right = self.pool_right(x_right)
         x = torch.cat([torch.flatten(x_left, 1), torch.flatten(x_right, 1)], 1)
@@ -489,12 +481,6 @@ def parse_args() -> argparse.Namespace:
         help="Validation log frequency (epochs, default: 5)"
     )
     parser.add_argument(
-        "-bn",
-        "--batch-norm",
-        action='store_true',
-        help="Use batch normalisation after convolution (default: False)"
-    )
-    parser.add_argument(
         "-s",
         "--save",
         action='store_true',
@@ -519,7 +505,6 @@ def log_dir(args) -> str:
     """
     log_dir = f"logs/{datetime.now().strftime('%d-%H%M%S')}"
     log_dir += f"_bs{args.batch_size}"
-    log_dir += "_bn" if args.batch_norm else ""
     return log_dir
 
 
@@ -530,7 +515,7 @@ def main() -> None:
         None
     """
     args = parse_args()
-    model = ShallowCNN(batch_norm=args.batch_norm)
+    model = ShallowCNN()
     train_loader = DataLoader(
         dataset=GTZAN("data/train.pkl"),
         shuffle=True,
