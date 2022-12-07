@@ -33,7 +33,7 @@ cj19328@bristol.ac.uk}
 \maketitle
 
 \begin{abstract}
-This paper describes a reimplementation of the shallow convolutional neural network architecture proposed by Schindler et al. \cite{SchindlerLidyRauber} for music genre classification.
+This paper describes a reimplementation of the shallow convolutional neural network architecture proposed by Schindler et al. in \cite{SchindlerLidyRauber} for music genre classification.
 The first part of the paper focuses on the reimplementation details and provides an extensive analysis of the network's performance.
 The latter part of the paper builds on the work of Schindler et al., showing that the inclusion of two batch normalisation layers substantially improves performance.
 \end{abstract}
@@ -45,7 +45,7 @@ Music Information Retrieval, Music Genre Classification, Convolutional Neural Ne
 \section{Introduction}
 
 The explosive growth of digital music platforms has sparked significant advancements in the field of music information retrieval (MIR).
-This rapidly evolving discipline that focuses on developing computational techniques to extract valuable insights from music and audio signals.
+This rapidly evolving discipline focuses on developing computational techniques to extract valuable insights from music and audio signals.
 As MIR technologies continue to advance, they are becoming increasingly crucial for the music industry, enabling the creation of more effective tools, such as recommender systems, which can provide a competitive edge in a crowded market.
 
 One of the critical challenges in MIR is genre classification, which involves identifying the musical genre of a given audio signal.
@@ -121,7 +121,7 @@ The tracks were split into training and test sets before the spectrograms were g
 \subsection{Training Details}
 
 I constructed and trained the CNN using Python and the PyTorch \cite{PyTorch} machine learning framework and implemented the training method described by Schindler et al. in \cite{SchindlerLidyRauber}.
-I used the cross-entropy loss function to evaluate the network's performance and employed L1 regularisation with a penalty value of $0.0001$ to mitigate overfitting
+I used the cross-entropy loss function to evaluate the network's performance and employed L1 regularisation with a penalty value of $0.0001$ to mitigate overfitting.
 I used the Adam optimiser \cite{KingmaBa}---an extension of stochastic gradient descent---to optimise the network, using a learning rate of $5\times10^{-5}$, $\beta_1=0.9$, $\beta_2=0.999$, and $\epsilon=1\times10^{-8}$ for numerical stability.
 I trained the network on a BlueCrystal Phase 4 GPU node containing two NVIDIA Tesla P100 GPUs \cite{bc4}.
 
@@ -143,7 +143,7 @@ Therefore, I experimented with multiple batch sizes in preliminary experiments a
 \section{Replicating Quantitative Results}
 
 Table \ref{shallow_results} shows the mean accuracy of the implementation on the test set over five runs, along with the accuracy achieved by Schindler et al. \cite{SchindlerLidyRauber} for comparison.
-Our results differed by approximately 3\%, likely due to differences in the experimental setup and assumptions made between the two studies.
+The results differed by approximately 3\%, likely due to differences in the experimental setup and assumptions made between the two studies.
 
 \begin{table}[htbp]
     \caption{Accuracy achieved on the test set}
@@ -244,7 +244,8 @@ In contrast, Figure \ref{spec_incorrect_1} displays a spectrogram from a piece o
 It made the same error with 9 of the 15 spectrograms derived from the same piece of music.
 Although it is impossible to determine the exact reason for these errors, the music itself appeared to borrow elements from both the classical and jazz genres.
 While the piece uses a jazz chord progression, there is no syncopated beat, and it appears to contain a classical drum.
-The misclassification suggests that the short duration used to produce each log-mel spectrogram likely degrades the overall accuracy of the network. 
+Therefore, if a spectrogram was produced from a short sample that included a classical drum, for example, it is not surprising that the network misclassified it.
+The misclassification suggests that the short duration used to produce each log-mel spectrogram likely degrades the overall accuracy of the network.
 It highlights a potential problem with the overall method, in that 0.93-second samples are often insufficient to accurately represent a piece of music.
 
 Figure \ref{spec_incorrect_2} shows a spectrogram produced from pop music that the network misclassified as disco.
@@ -265,7 +266,7 @@ In order to improve the accuracy of the network, I implemented two additional cl
     \item Majority vote: a class is determined for each spectrogram by the largest value output by the final layer. A majority vote is then conducted over the predicted classes for each segment.
 \end{itemize}
 
-Table \ref{improved_results} displays the accuracy of the raw, maximum probability and majority vote approaches.
+Table \ref{improved_results} displays the mean accuracy of the raw, maximum probability and majority vote approaches on the test set over five runs.
 The relative improvement in accuracy provided by the two new approaches is consistent with the findings of Schindler et al. in \cite{SchindlerLidyRauber}.
 Moreover, including all three accuracy metrics makes the findings more comparable with the broader literature, which frequently employs these three approaches.
 
@@ -300,7 +301,7 @@ Batch normalisation \cite{IoffeSzegedy} is frequently employed to increase the s
 It consists of a normalisation step that fixes the means and variances of each layer's input.
 
 I implemented a two-dimensional batch normalisation layer following the network's two convolutional layers.
-Table \ref{improved_results} displays the accuracy of the network with the inclusion of the batch normalisation layers; it shows that batch normalisation provided approximately a 2\% increase in accuracy across all three classification methods.
+Table \ref{improved_results} displays the mean accuracy of the network on the test set over five runs with the inclusion of the batch normalisation layers; it shows that batch normalisation provided approximately a 2\% increase in accuracy across all three classification methods.
 There is disagreement in the broader literature on deep learning regarding the precise mechanisms for batch normalisation's empirically substantial benefits.
 Santukar et al. \cite{SanturkarEtAl} identified that the batch normalisation layers significantly smooth the optimisation landscape, thus inducing a more predictive and stable behaviour of the gradients, which facilitates faster training and enables the model to converge to a better solution.
 
