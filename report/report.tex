@@ -56,15 +56,20 @@ In this paper, we explore the use of CNNs for genre classification, and specific
 
 \section{Related Work}
 
+This section summarises some of the recent state-of-the-art approaches to genre classification.
+
 Liu et al. \cite{LiuFengLiuWangLiu} recently proposed a novel architecture named a Bottom-up Broadcast Neural Network (BBNN) to deal with some of the problems traditionally associated with genre classification.
 They identified that many previously developed architectures had focused on abstracting high-level semantic features layer-by-layer; as a result, these architectures suffer from a huge loss of lower-level features which are critical to the task of genre classification.
-Thus, the BBNN architecture was specifically designed to simultaneously abstract high-level information while preserving the lower-level features.
+Thus, the BBNN architecture was specifically designed to deal with this problem with the introduction of the novel Broadcast Module (BM), which makes use of Inception modules connected by dense connectivity.
+The Inception modules contain parallel convolutional and a max-pooling layers of varying shapes, thus enabling the network to capture temporal and spectral hierarchies at multiple scales.
+The dense connectivity enables the low-level information extracted from the earlier modules to be propagated throughout the network.
+Liu et al. demonstrated that the BBNN achieves state-of-the-art performance on a variety of music datasets.
 
-Large datasets are frequently required to train powerful deep neural networks.
-However, in the MIR domain, there is often  a lack of large training datasets.
-Hung et al. \cite{HungYangChenLerch} published some very recent work that successfully dealt with this problem.
-They introduced a novel method called input-dependent neural model reprogramming---a transfer learning training scheme---that leverages pre-trained models for music classification.
-They successfully applied this method to reprogram two published models that were pre-trained on speech and audio data.
+One of the main problems in the wider MIR domain is the lack of the large training datasets that are frequently required to train powerful deep neural networks.
+To deal with this problem, Hung et al. \cite{HungYangChenLerch} very recently published a novel method known as input-dependent neural model reprogramming (ID-NMR).
+ID-NMR is a transfer learning training scheme, that leverages pre-trained models from a source domain and applies it to a target domain.
+Hunt et al. successfully applied this technique to transform two models trained on speech and audio data to the task of genre classification.
+Their model managed to outperform both a fine-tuning transfer learning method and existing state-of-the-art models pre-trained on music-specific datasets.
 
 \section{Dataset}
 
@@ -148,8 +153,8 @@ Our results differed by approximately 3\%, likely due to differences in the expe
     \toprule
     \textbf{Model}&\textbf{Epoch}&\textbf{Accuracy}\\
     \midrule
-    \multirow{ 2}{*}{My CNN} & 100 & 63.58 \\
-    & 200 & 64.02 \\
+    \multirow{ 2}{*}{My CNN} & 100 & 63.28 \\
+    & 200 & 64.22 \\
     \midrule
     \multirow{ 2}{*}{Schindler et al.} & 100 & 66.56\\
     & 200 & 67.49 \\
@@ -161,7 +166,7 @@ Our results differed by approximately 3\%, likely due to differences in the expe
 
 Figure \ref{confusion_matrix} is a confusion matrix displaying the the performance of my implementation after 200 epochs.
 Notably, the matrix shows a significant difference in the per-class accuracy for different genres.
-For example, the network achieved a high per class accuracy of least 80\% on the blues, classical and metal genres.
+For example, the network achieved a high per-class accuracy of least 80\% on the blues, classical and metal genres.
 While conversely, it achieved less than a 50\% per-class accuracy on the reggae and rock genres; in particular, it misclassified 22\% of reggae songs as hip-hop.
 
 \begin{figure}[htbp]
@@ -271,6 +276,8 @@ The increase in accuracy is due to to there being some level of independence in 
 This independence can be attributed to the 0.93 second samples often being too short to be representative, as well as the model overfitting the training data.
 The majority vote and maximum probability classification methods effectively cancel out many of the individual errors to produce more accurate predictions for entire files.
 
+Moreover, both of these strategies are frequently employed in the wider literature on music genre classification, and so make my results more comparable with similar studies.
+
 \begin{table}[htbp]
     \caption{Improved accuracy achieved on the test set}
     \begin{center}
@@ -280,10 +287,10 @@ The majority vote and maximum probability classification methods effectively can
     \cmidrule(lr){3-5}
     \textbf{Model}&\textbf{Epoch}&\textbf{Raw}&\textbf{Max}&\textbf{Maj}\\
     \midrule
-    \multirow{ 2}{*}{My CNN} & 100 & 63.58 & 77.44 & 75.84 \\
-    & 200 & 64.02 & 77.20 & 76.16 \\
+    \multirow{ 2}{*}{My CNN} & 100 & 63.28 & 77.44 & 75.84 \\
+    & 200 & 64.22 & 77.20 & 76.16 \\
     \midrule
-    \multirow{ 2}{*}{My CNN + Batch Norm} & 100 & 66.47 & 78.88 & 76.24 \\
+    \multirow{ 2}{*}{My CNN + Batch Norm} & 100 & 66.57 & 78.88 & 76.24 \\
     & 200 & \textbf{66.78} & \textbf{79.60} & \textbf{77.68} \\
     \bottomrule
     \end{tabular}
@@ -295,22 +302,18 @@ The majority vote and maximum probability classification methods effectively can
 
 Batch normalisation \cite{IoffeSzegedy} is a technique frequently employed to increase the speed and stability of the training process.
 This is achieved via a normalisation step that fixes the means and variances of each layer's input.
-When applied to the output from a convolutional layer, this is implemented as follows:
-\[
-\hat{x}_{i,c,x,y}=\gamma_c\frac{x_{i,c,x,y}-\mu_c}{\sqrt{\sigma_c^2+\epsilon}}+\beta_c
-\]
-where $x$ is the output from the previous layer; $\hat{x}$ is the input to the subsequent layer; $i$, $c$, $x$ and $y$ are the batch, channel, width and height indices; $\gamma_c$ and $\beta_c$ are parameters learned during the optimisation process to restore the representative power of the network; and $\gamma$ is a small constant for numerical stability.
 
-I implemented a two-dimensional batch normalisation layer following each of the two convolutional layers in my network using $PyTorch$'s \texttt{nn.BatchNorm2d} class.
+I implemented a two-dimensional batch normalisation layer following each of the two convolutional layers in my network.
 Table \ref{improved_results} displays the accuracy of my network with the inclusion of the batch normalisation layers.
-Not only did batch normalisation provide a reasonabe improvement in accuracy after 200 epochs---especially in the case of raw accuracy---but, it also reduced the number of epochs required for convergence to a small degree.
-Unlike in the case of the CNN trained without batch normalisation, the difference in accuracy between 100 and 200 epochs is very minimal.
-The precise reasons for the improved performance are unclear: Batch normalisation has strong empirical performance, but there is some disagreement as to the theory behind its effectiveness.
-Santukar et al. \cite{SanturkarEtAl} proposed that batch normalisation significantly smoothes the optimisation landscape, which induces a more predictive and stable behaviour of the gradients, thus facilitating faster training.
+Not only did batch normalisation provide a reasonabe improvement in accuracy after 200 epochs---especially in the case of raw accuracy---but, it also sped up convergence.
+This is potentially due to the batch normalisation layers significantly smoothing the optimisation landscape as proposed by Santukar et al. in \cite{SanturkarEtAl}, thus inducing a more predictive and stable behaviour of the gradients which facilitates faster training.
+However, the precise reason cannot be determined---there is some disagreement in the wider literature on deep learning as to the theoretical basis for batch normalisation's strong empirical performance.
 
-Figure \ref{accuracy_curves_improved} displays the raw accuracy the network achieved on the training and test set during the training process.
-It is evident that the degree to which the network is overfitting has been reduced.
-This is because batch normalisation also works as a regulariser, due to the fact that the mean and standard deviation is computed from each mini-batch, rather than the entire dataset.
+Batch normalisation also has a regularising effect that helps mitigate overfitting, as can be seen in Figure \ref{accuracy_curves_improved}.
+Unlike with the network trained without batch normalisation, the network did not consistently hit 100\% accuracy on the test set, and the discrepency in accuracy between the training and test set was lower at each stage.
+This is because each mini-batch has a slightly different mean and standard deviation, which causes the batch normalisation layers to normalise each mini-batch slightly differently.
+As such, there is an element of randomness, which encourages the network to be less sensitive to the random noise in its input.
+This overall mitigates the degree to which the network overfits.
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=\columnwidth]{accuracy_improved.png}}
@@ -320,6 +323,11 @@ This is because batch normalisation also works as a regulariser, due to the fact
     }
     \label{accuracy_curves_improved}
 \end{figure}
+
+Figure \ref{confusion_matrix_improved} displays a confusion matrix displaying the improved performance of the network following the implementation of batch normalisation.
+Classification was done per-file using the maximum probability method.
+There is an evident improvement in per-class accuracy across the genres.
+Notably, the network accurately classified 100\% of songs from the classical genre.
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=\columnwidth]{cm_improved.png}}
